@@ -117,6 +117,7 @@ apply_tweaks() {
         sed -i \
           -e 's#https://github\.com/j-hc/revanced-magisk-module#https://github.com/zebz213/revanced-apk#g' \
           -e 's#https://raw\.githubusercontent\.com/j-hc/revanced-magisk-module#https://raw.githubusercontent.com/zebz213/revanced-apk#g' \
+          -e 's#https://github\.com/new\?template_name=revanced-magisk-module&template_owner=j-hc#https://github.com/new?template_name=revanced-apk\&template_owner=zebz213#g' \
           -e 's#cd revanced-magisk-module#cd revanced-apk#g' \
           "$f"
         ;;
