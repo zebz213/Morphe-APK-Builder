@@ -70,7 +70,7 @@
       <h2>Global</h2>
       <div class="row"><label for="g-dpi">dpi (default)</label>
         <input type="text" id="g-dpi" placeholder="nodpi anydpi" data-global="dpi"></div>
-      <div class="row"><label for="g-checks">remove-rv-integrations-checks</label>
+      <div class="row"><label for="g-checks">remove-mph-integrations-checks</label>
         <div><input type="checkbox" id="g-checks" checked data-global="removeChecks"></div></div>
     </section>
 
@@ -182,7 +182,7 @@ function renderApps() {
       ${field(a,"appName","app-name")}
       ${field(a,"patchesSource","patches-source")}
       ${field(a,"cliSource","cli-source")}
-      ${field(a,"brand","rv-brand")}
+      ${field(a,"brand","mph-brand")}
       ${field(a,"apkMirror","apkmirror-dlurl")}
       ${field(a,"archive","archive-dlurl")}
       ${field(a,"direct","direct-dlurl")}
@@ -211,7 +211,7 @@ function block(text) {
 
 function toml() {
   const g = state.globals, out = [];
-  out.push(`remove-rv-integrations-checks = ${g.removeChecks}`);
+  out.push(`remove-mph-integrations-checks = ${g.removeChecks}`);
   if (g.dpi.trim()) out.push(`dpi = ${q(g.dpi.trim())}`);
 
   for (const a of state.apps) {
@@ -220,7 +220,7 @@ function toml() {
     t.push(`enabled = ${a.enabled}`);
     if (a.patchesSource.trim()) t.push(`patches-source = ${q(a.patchesSource.trim())}`);
     if (a.cliSource.trim()) t.push(`cli-source = ${q(a.cliSource.trim())}`);
-    if (a.brand.trim()) t.push(`rv-brand = ${q(a.brand.trim())}`);
+    if (a.brand.trim()) t.push(`mph-brand = ${q(a.brand.trim())}`);
     if (a.apkMirror.trim()) t.push(`apkmirror-dlurl = ${q(a.apkMirror.trim())}`);
     if (a.archive.trim()) t.push(`archive-dlurl = ${q(a.archive.trim())}`);
     if (a.direct.trim()) t.push(`direct-dlurl = ${q(a.direct.trim())}`);
@@ -248,7 +248,7 @@ function warnings() {
     if (!a.apkMirror.trim() && !a.archive.trim() && !a.direct.trim())
       w.push(`[${id}] has no download URL — build.sh will abort for it.`);
     if (a.enabled && !a.patchesSource.trim())
-      w.push(`[${id}] has no patches-source — build.sh falls back to ReVanced/revanced-patches, which is DMCA-blocked (HTTP 451).`);
+      w.push(`[${id}] has no patches-source — it falls back to MorpheApp/morphe-patches, which may not patch this app.`);
     if (a.arch === "both" && !/^(YouTube|Music)$/i.test(a.appName || ""))
       w.push(`[${id}] uses arch "both", which builds two APKs and needs both ABIs to exist.`);
   }

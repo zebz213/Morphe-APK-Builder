@@ -1,6 +1,6 @@
 # Config
 
-Adding another revanced app is as easy as this:
+Adding another app is as easy as this:
 ```toml
 [Some-App]
 apkmirror-dlurl = "https://www.apkmirror.com/apk/inc/app"
@@ -15,15 +15,14 @@ There exists an example below with all defaults shown and all the keys explicitl
 **All keys are optional** (except download urls) and are assigned to their default values if not set explicitly.  
 
 ```toml
-remove-rv-integrations-checks = true # remove checks from the revanced integrations
+remove-mph-integrations-checks = true # remove checks from the morphe integrations
 dpi = "nodpi anydpi 120-640dpi"      # dpi packages to be searched in order. default: "nodpi anydpi"
 
-patches-source = "revanced/revanced-patches" # where to fetch patches bundle from. default: "revanced/revanced-patches"
-# NOTE: the default ReVanced/revanced-patches repo is DMCA-blocked (HTTP 451, since 2026-03-24).
-# Always set this explicitly, e.g. "MorpheApp/morphe-patches".
-cli-source = "ReVanced/revanced-cli"             # where to fetch cli from. default: "ReVanced/revanced-cli"
+patches-source = "MorpheApp/morphe-patches" # where to fetch patches bundle from. default: "MorpheApp/morphe-patches"
+# NOTE: ReVanced/revanced-patches is DMCA-blocked (HTTP 451 since 2026-03-24), which is why the default is Morphe.
+cli-source = "MorpheApp/morphe-cli"             # where to fetch cli from. default: "MorpheApp/morphe-cli"
 # options like cli-source can also set per app
-rv-brand = "ReVanced Extended" # rebrand from 'ReVanced' to something different. default: "ReVanced"
+mph-brand = "Morphe" # rebrand to something different. default: "Morphe"
 
 patches-version = "v2.160.0" # 'latest', 'dev', or a version number. default: "latest"
 cli-version = "v5.0.0"       # 'latest', 'dev', or a version number. default: "latest"

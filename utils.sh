@@ -99,17 +99,17 @@ get_prebuilts() {
 		dir=${TEMP_DIR}/${dir,,}-rv
 		[ -d "$dir" ] || mkdir "$dir"
 
-		local rv_rel="https://api.github.com/repos/${src}/releases" name_ver
+		local rel_url="https://api.github.com/repos/${src}/releases" name_ver
 		if [ "$ver" = "dev" ]; then
 			local resp
-			resp=$(gh_req "$rv_rel" -) || return 1
+			resp=$(gh_req "$rel_url" -) || return 1
 			ver=$(jq -e -r '.[] | .tag_name' <<<"$resp" | get_highest_ver) || return 1
 		fi
 		if [ "$ver" = "latest" ]; then
-			rv_rel+="/latest"
+			rel_url+="/latest"
 			name_ver="*"
 		else
-			rv_rel+="/tags/${ver}"
+			rel_url+="/tags/${ver}"
 			name_ver="$ver"
 		fi
 
@@ -130,7 +130,7 @@ get_prebuilts() {
 		fi
 		if [ -z "$file" ]; then
 			local resp asset name
-			resp=$(gh_req "$rv_rel" -) || return 1
+			resp=$(gh_req "$rel_url" -) || return 1
 			tag_name=$(jq -r '.tag_name' <<<"$resp") || return 1
 			matches=$(jq -e '.assets | map(select(.name | (endswith("asc") or endswith("json")) | not))' <<<"$resp") || return 1
 			if [ "$(jq 'length' <<<"$matches")" -gt 1 ]; then
@@ -166,7 +166,7 @@ get_prebuilts() {
 
 		if [ "$tag" = "Patches" ]; then
 			if [ "$grab_cl" = "true" ]; then echo -e "[Changelog](https://github.com/${src}/releases/tag/${tag_name})\n" >>"${cl_dir}/changelog.md"; fi
-			if [ "$REMOVE_RV_INTEGRATIONS_CHECKS" = "true" ]; then
+			if [ "$REMOVE_MPH_INTEGRATIONS_CHECKS" = "true" ]; then
 				local extensions_ext
 				extensions_ext=$(unzip -l "${file}" "extensions/shared.*" | grep -o "shared\..*") extensions_ext="${extensions_ext#*.}"
 				(
@@ -213,13 +213,13 @@ config_update() {
 			if [ "${sources["$PATCHES_SRC/$PATCHES_VER"]}" = 1 ]; then upped+=("$table_name"); fi
 		else
 			sources["$PATCHES_SRC/$PATCHES_VER"]=0
-			local rv_rel="https://api.github.com/repos/${PATCHES_SRC}/releases"
+			local rel_url="https://api.github.com/repos/${PATCHES_SRC}/releases"
 			if [ "$PATCHES_VER" = "dev" ]; then
-				last_patches=$(gh_req "$rv_rel" - | jq -e -r '.[0]') || continue
+				last_patches=$(gh_req "$rel_url" - | jq -e -r '.[0]') || continue
 			elif [ "$PATCHES_VER" = "latest" ]; then
-				last_patches=$(gh_req "$rv_rel/latest" -) || continue
+				last_patches=$(gh_req "$rel_url/latest" -) || continue
 			else
-				last_patches=$(gh_req "$rv_rel/tags/${PATCHES_VER}" -) || continue
+				last_patches=$(gh_req "$rel_url/tags/${PATCHES_VER}" -) || continue
 			fi
 			tag_name=$(jq -e -r '.tag_name' <<<"$last_patches") || abort "config_update error: No tag name"
 			if ! last_patches=$(jq -e -r '.assets[] | select(.name | (endswith("asc") or endswith("json")) | not) | .name' <<<"$last_patches"); then
@@ -762,16 +762,16 @@ build_rv() {
 	local microg_patch
 	microg_patch=$(grep "^Name: " <<<"$list_patches" | grep -i "gmscore\|microg" || :) microg_patch=${microg_patch#*: }
 	if [ -n "$microg_patch" ] && [[ ${p_patcher_args[*]} =~ $microg_patch ]]; then
-		wpr "Cannot include/exclude microg patch as that's done by rvmm builder automatically."
+		wpr "Cannot include/exclude microg patch as that's done by the builder automatically."
 		p_patcher_args=("${p_patcher_args[@]//-[ei] ${microg_patch}/}")
 	fi
 
 	local patcher_args patched_apk
-	local rv_brand_f=${args[rv_brand],,}
-	rv_brand_f=${rv_brand_f// /-}
+	local mph_brand_f=${args[mph_brand],,}
+	mph_brand_f=${mph_brand_f// /-}
 	patcher_args=("${p_patcher_args[@]}")
 	pr "Building '${table}'"
-	patched_apk="${TEMP_DIR}/${app_name_l}-${rv_brand_f}-${version_f}-${arch_f}.apk"
+	patched_apk="${TEMP_DIR}/${app_name_l}-${mph_brand_f}-${version_f}-${arch_f}.apk"
 
 	if [ -n "$microg_patch" ]; then
 		patcher_args+=("-e \"${microg_patch}\"")
@@ -811,7 +811,7 @@ build_rv() {
 		zip -d "$stock_apk_to_patch" "lib/x86_64/*" "lib/x86/*" >/dev/null 2>&1 || :
 	fi
 
-	local apk_output="${BUILD_DIR}/${app_name_l}-${rv_brand_f}-v${version_f}-${arch_f}.apk"
+	local apk_output="${BUILD_DIR}/${app_name_l}-${mph_brand_f}-v${version_f}-${arch_f}.apk"
 	if [ "${NORB:-}" != true ] || { [ ! -f "$patched_apk" ] && [ ! -f "$apk_output" ]; }; then
 		if ! patch_apk "$stock_apk_to_patch" "$patched_apk" "${patcher_args[*]}" "${args[cli]}" "${args[ptjar]}"; then
 			epr "Building '${table}' failed!"

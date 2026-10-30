@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/zebz213/Morphe-APK-Builder/actions/workflows/ci.yml/badge.svg?event=schedule)](https://github.com/zebz213/Morphe-APK-Builder/actions/workflows/ci.yml)
 
-Builds **non-root** Morphe/ReVanced APKs for whatever is listed in [`config.toml`](./config.toml).
+Builds **non-root** Morphe APKs for whatever is listed in [`config.toml`](./config.toml).
 No Magisk or KernelSU module is produced — there is nothing to flash.
 
 Get the [latest CI release](https://github.com/zebz213/Morphe-APK-Builder/releases).

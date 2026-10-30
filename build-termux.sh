@@ -24,10 +24,10 @@ until
 	yes | termux-setup-storage >/dev/null 2>&1
 	ls /sdcard >/dev/null 2>&1
 do sleep 1; done
-if [ ! -f ~/.rvmm_"$(date '+%Y%m')" ]; then
+if [ ! -f ~/.morphe-apk-builder_"$(date '+%Y%m')" ]; then
 	pr "Setting up environment..."
 	yes "" | pkg update -y && pkg upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" && pkg install -y git curl jq openjdk-21 zip
-	: >~/.rvmm_"$(date '+%Y%m')"
+	: >~/.morphe-apk-builder_"$(date '+%Y%m')"
 fi
 mkdir -p /sdcard/Download/morphe-apk-builder/
 
@@ -56,8 +56,8 @@ fi
 [ -f ~/storage/downloads/morphe-apk-builder/config.toml ] ||
 	cp config.toml ~/storage/downloads/morphe-apk-builder/config.toml
 
-if ask "Open rvmm-config-gen to generate a config?"; then
-	am start -a android.intent.action.VIEW -d https://j-hc.github.io/rvmm-config-gen/
+if ask "Open the config generator in a browser?"; then
+	am start -a android.intent.action.VIEW -d https://zebz213.github.io/Morphe-APK-Builder/
 fi
 printf "\n"
 until
