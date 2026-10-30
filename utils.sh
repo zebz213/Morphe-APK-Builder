@@ -7,6 +7,16 @@ BIN_DIR="bin"
 BUILD_DIR="build"
 DL_SRCS=("direct" "archive" "apkmirror")
 
+# Signing keys. Files are gitignored; CI writes them from repository secrets,
+# local builds can drop them in the repo root or point the vars elsewhere.
+KS_ENV_FILE=${KS_ENV_FILE:-.env.keys}
+if [ -f "$KS_ENV_FILE" ]; then . "$KS_ENV_FILE"; fi
+KS_FILE=${KS_FILE:-ks.keystore}
+KS_P12_FILE=${KS_P12_FILE:-ks-p12.keystore}
+KS_ALIAS=${KS_ALIAS:-jhc}
+KS_STORE_PASS=${KS_STORE_PASS:-123456789}
+KS_KEY_PASS=${KS_KEY_PASS:-$KS_STORE_PASS}
+
 if [ "${GITHUB_TOKEN-}" ]; then GH_HEADER="Authorization: token ${GITHUB_TOKEN}"; else GH_HEADER=; fi
 NEXT_VER_CODE=${NEXT_VER_CODE:-$(date +'%Y%m%d')}
 OS=$(uname -o)
@@ -368,7 +378,7 @@ merge_splits() {
 		return 1
 	fi
 	# sign the merged stock apk
-	if ! OP=$(java -jar "$APKSIGNER" sign --ks ks-p12.keystore --ks-pass pass:123456789 --key-pass pass:123456789 --ks-key-alias jhc \
+	if ! OP=$(java -jar "$APKSIGNER" sign --ks "$KS_P12_FILE" --ks-pass pass:"$KS_STORE_PASS" --key-pass pass:"$KS_KEY_PASS" --ks-key-alias "$KS_ALIAS" \
 		--out "${output}" "${output}-unsigned"); then
 		epr "apksigner error: $OP"
 		return 1
@@ -586,8 +596,8 @@ patch_apk() {
 	local tmp_files
 	tmp_files="$(pwd)/$(mktemp -d -p "$TEMP_DIR")"
 
-	local cmd="java -jar '$cli_jar' patch '$stock_input' -o '$patched_apk' -p '$patches_jar' --keystore=ks.keystore \
---keystore-entry-password=123456789 --keystore-password=123456789 --signer=jhc --keystore-entry-alias=jhc -t '$tmp_files' $patcher_args"
+	local cmd="java -jar '$cli_jar' patch '$stock_input' -o '$patched_apk' -p '$patches_jar' --keystore='$KS_FILE' \
+--keystore-entry-password='$KS_KEY_PASS' --keystore-password='$KS_STORE_PASS' --signer='$KS_ALIAS' --keystore-entry-alias='$KS_ALIAS' -t '$tmp_files' $patcher_args"
 
 	# TODO: remove this later
 	local cli_name

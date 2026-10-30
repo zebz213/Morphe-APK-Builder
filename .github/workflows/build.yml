@@ -25,6 +25,26 @@ jobs:
           fetch-depth: 0
           submodules: true
 
+      - name: Install signing keys
+        env:
+          KS_P12_B64: ${{ secrets.KEYSTORE_P12_B64 }}
+          KS_BKS_B64: ${{ secrets.KEYSTORE_BKS_B64 }}
+          KS_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KS_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+        run: |
+          if [ -z "$KS_P12_B64" ] || [ -z "$KS_BKS_B64" ] || [ -z "$KS_PASS" ]; then
+            echo "::error::Signing key secrets are missing (KEYSTORE_P12_B64, KEYSTORE_BKS_B64, KEYSTORE_PASS)"
+            exit 1
+          fi
+          printf '%s' "$KS_P12_B64" | base64 -d > ks-p12.keystore
+          printf '%s' "$KS_BKS_B64" | base64 -d > ks.keystore
+          chmod 600 ks-p12.keystore ks.keystore
+          {
+            echo "KS_STORE_PASS=$KS_PASS"
+            echo "KS_KEY_PASS=$KS_PASS"
+            echo "KS_ALIAS=$KS_ALIAS"
+          } >> "$GITHUB_ENV"
+
       - name: Update config
         if: ${{ inputs.from_ci }}
         run: |
