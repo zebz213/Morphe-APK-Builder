@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>config.toml generator — revanced-apk</title>
+<style>
+  :root {
+    --bg:#0f1115; --panel:#171a21; --line:#262b36; --fg:#e6e9ef; --dim:#9aa4b2;
+    --accent:#4f8cff; --ok:#39b982; --warn:#e0a63c; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @media (prefers-color-scheme:light) {
+    :root { --bg:#f7f8fa; --panel:#fff; --line:#dfe3ea; --fg:#141821; --dim:#5b6675; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+    font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { padding:28px 20px 10px; max-width:1180px; margin:0 auto; }
+  h1 { margin:0 0 6px; font-size:24px; letter-spacing:-.02em; }
+  header p { margin:0; color:var(--dim); font-size:14px; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  main { max-width:1180px; margin:0 auto; padding:16px 20px 80px;
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,460px); gap:20px; align-items:start; }
+  @media (max-width:900px) { main { grid-template-columns:1fr; } }
+  section.panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .panel h2 { margin:0 0 12px; font-size:13px; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--dim); font-weight:600; }
+  .row { display:grid; grid-template-columns:150px minmax(0,1fr); gap:10px; align-items:center; margin-bottom:8px; }
+  .row label { color:var(--dim); font-size:13px; }
+  input[type=text], select, textarea {
+    width:100%; background:var(--bg); color:var(--fg); border:1px solid var(--line);
+    border-radius:8px; padding:7px 9px; font:inherit; font-size:13px;
+  }
+  textarea { font-family:var(--mono); min-height:64px; resize:vertical; }
+  input[type=checkbox] { accent-color:var(--accent); width:16px; height:16px; }
+  .app { border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; background:var(--panel); }
+  .app-head { display:flex; gap:10px; align-items:center; margin-bottom:12px; }
+  .app-head input { font-weight:600; }
+  .app-head .del { background:none; border:1px solid var(--line); color:var(--dim);
+    border-radius:8px; padding:5px 9px; cursor:pointer; font-size:12px; }
+  .app-head .del:hover { color:#ff6b6b; border-color:#ff6b6b; }
+  .presets { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px 160px; }
+  .presets button { background:var(--bg); border:1px solid var(--line); color:var(--fg);
+    border-radius:999px; padding:4px 10px; font-size:12px; cursor:pointer; }
+  .presets button:hover { border-color:var(--accent); color:var(--accent); }
+  .actions { display:flex; gap:8px; margin:14px 0; flex-wrap:wrap; }
+  .actions button { background:var(--accent); border:0; color:#fff; border-radius:8px;
+    padding:9px 14px; font:inherit; font-size:13px; cursor:pointer; }
+  .actions button.ghost { background:var(--bg); border:1px solid var(--line); color:var(--fg); }
+  pre { margin:0; padding:14px; background:var(--bg); border:1px solid var(--line);
+    border-radius:10px; font-family:var(--mono); font-size:12.5px; line-height:1.55;
+    overflow:auto; max-height:70vh; white-space:pre; }
+  .warn { margin-top:10px; font-size:13px; color:var(--warn); }
+  .warn ul { margin:6px 0 0; padding-left:18px; }
+  .hint { color:var(--dim); font-size:12px; margin:4px 0 0 160px; }
+  .sticky { position:sticky; top:16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>config.toml generator</h1>
+  <p>For <a href="https://github.com/zebz213/revanced-apk">revanced-apk</a> — non-root APK builds only.
+     Option reference: <a href="../../CONFIG.md">CONFIG.md</a>.</p>
+</header>
+
+<main>
+  <div>
+    <section class="panel" style="margin-bottom:20px">
+      <h2>Global</h2>
+      <div class="row"><label for="g-dpi">dpi (default)</label>
+        <input type="text" id="g-dpi" placeholder="nodpi anydpi" data-global="dpi"></div>
+      <div class="row"><label for="g-checks">remove-rv-integrations-checks</label>
+        <div><input type="checkbox" id="g-checks" checked data-global="removeChecks"></div></div>
+      <div class="row"><label for="g-jobs">parallel-jobs</label>
+        <input type="text" id="g-jobs" value="1" data-global="parallelJobs"></div>
+      <p class="hint">parallel-jobs is currently ignored by build.sh (pinned to 1).</p>
+    </section>
+
+    <div id="apps"></div>
+    <div class="actions"><button class="ghost" id="add">+ Add app</button></div>
+  </div>
+
+  <div class="sticky">
+    <section class="panel">
+      <h2>config.toml</h2>
+      <div class="actions" style="margin-top:0">
+        <button id="copy">Copy</button>
+        <button class="ghost" id="download">Download</button>
+      </div>
+      <pre id="out"></pre>
+      <div class="warn" id="warnings" hidden></div>
+    </section>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+const PRESETS = {
+  morphe:   { patchesSource:"MorpheApp/morphe-patches", cliSource:"MorpheApp/morphe-cli", brand:"Morphe" },
+  revanced: { patchesSource:"", cliSource:"", brand:"" },
+  spotify:  { patchesSource:"", cliSource:"", brand:"", apkMirror:"https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts" },
+};
+
+const ARCHES = ["all","both","arm64-v8a","arm-v7a","x86_64","x86"];
+let appSeq = 0;
+
+const state = {
+  globals: { dpi:"", removeChecks:true, parallelJobs:"1" },
+  apps: [],
+};
+
+function newApp(init) {
+  return Object.assign({
+    uid: ++appSeq,
+    id: "Some-App",
+    enabled: true,
+    appName: "",
+    patchesSource: "",
+    cliSource: "",
+    brand: "",
+    apkMirror: "",
+    archive: "",
+    direct: "",
+    arch: "all",
+    dpi: "",
+    version: "auto",
+    excluded: "",
+    included: "",
+    updateChecks: false,
+    patcherArgs: "",
+  }, init);
+}
+
+function seed() {
+  state.apps = [
+    newApp({ id:"YouTube-Morphe", appName:"YouTube", arch:"all",
+      apkMirror:"https://www.apkmirror.com/apk/google-inc/youtube",
+      archive:"https://archive.org/download/jhc-apks/apks/com.google.android.youtube", ...PRESETS.morphe }),
+    newApp({ id:"Music-Morphe", appName:"Music", arch:"both",
+      apkMirror:"https://www.apkmirror.com/apk/google-inc/youtube-music",
+      archive:"https://archive.org/download/jhc-apks/apks/com.google.android.apps.youtube.music", ...PRESETS.morphe }),
+    newApp({ id:"Reddit-Morphe", appName:"Reddit", arch:"all", dpi:"120-640dpi",
+      apkMirror:"https://www.apkmirror.com/apk/redditinc/reddit/",
+      archive:"https://archive.org/download/jhc-apks/apks/com.reddit.frontpage", ...PRESETS.morphe }),
+    newApp({ id:"Spotify", arch:"all", ...PRESETS.spotify }),
+  ];
+}
+
+/* ---------- rendering ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function field(a, key, label, type="text", extra="") {
+  const v = a[key] ?? "";
+  if (type === "check") {
+    return `<div class="row"><label>${label}</label>
+      <div><input type="checkbox" data-uid="${a.uid}" data-key="${key}" ${v?"checked":""}></div></div>`;
+  }
+  if (type === "select") {
+    const opts = extra.map(o => `<option ${o===v?"selected":""}>${esc(o)}</option>`).join("");
+    return `<div class="row"><label>${label}</label>
+      <select data-uid="${a.uid}" data-key="${key}">${opts}</select></div>`;
+  }
+  if (type === "area") {
+    return `<div class="row"><label>${label}</label>
+      <textarea data-uid="${a.uid}" data-key="${key}" placeholder="'Some Patch'">${esc(v)}</textarea></div>`;
+  }
+  return `<div class="row"><label>${label}</label>
+    <input type="text" data-uid="${a.uid}" data-key="${key}" value="${esc(v)}"></div>`;
+}
+
+function renderApps() {
+  document.getElementById("apps").innerHTML = state.apps.map(a => `
+    <section class="app" data-uid="${a.uid}">
+      <div class="app-head">
+        <input type="text" data-uid="${a.uid}" data-key="id" value="${esc(a.id)}" title="TOML table name">
+        <button class="del" data-del="${a.uid}">Remove</button>
+      </div>
+      <div class="presets">
+        <button data-preset="morphe" data-uid="${a.uid}">Morphe source</button>
+        <button data-preset="revanced" data-uid="${a.uid}">ReVanced source</button>
+      </div>
+      ${field(a,"enabled","enabled","check")}
+      ${field(a,"appName","app-name")}
+      ${field(a,"patchesSource","patches-source")}
+      ${field(a,"cliSource","cli-source")}
+      ${field(a,"brand","rv-brand")}
+      ${field(a,"apkMirror","apkmirror-dlurl")}
+      ${field(a,"archive","archive-dlurl")}
+      ${field(a,"direct","direct-dlurl")}
+      ${field(a,"arch","arch","select",ARCHES)}
+      ${field(a,"dpi","dpi")}
+      ${field(a,"version","version")}
+      ${field(a,"updateChecks","enable-update-checks","check")}
+      ${field(a,"excluded","excluded-patches","area")}
+      ${field(a,"included","included-patches","area")}
+      ${field(a,"patcherArgs","patcher-args","area")}
+    </section>`).join("");
+}
+
+/* ---------- toml ---------- */
+const q = s => `"${String(s).replace(/\\/g,"\\\\").replace(/"/g,'\\"')}"`;
+
+function block(text) {
+  // TOML multi-line string, matching the format CONFIG.md documents:
+  //   key = """\
+  //     'Patch' \
+  //     """
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  return '"""\\\n  ' + lines.map(l => l + " \\").join("\n  ") + '\n  """';
+}
+
+function toml() {
+  const g = state.globals, out = [];
+  if (g.parallelJobs) out.push(`parallel-jobs = ${g.parallelJobs}`);
+  out.push(`remove-rv-integrations-checks = ${g.removeChecks}`);
+  if (g.dpi.trim()) out.push(`dpi = ${q(g.dpi.trim())}`);
+
+  for (const a of state.apps) {
+    const t = [];
+    if (a.appName.trim()) t.push(`app-name = ${q(a.appName.trim())}`);
+    t.push(`enabled = ${a.enabled}`);
+    t.push(`build-mode = "apk"`);
+    if (a.patchesSource.trim()) t.push(`patches-source = ${q(a.patchesSource.trim())}`);
+    if (a.cliSource.trim()) t.push(`cli-source = ${q(a.cliSource.trim())}`);
+    if (a.brand.trim()) t.push(`rv-brand = ${q(a.brand.trim())}`);
+    if (a.apkMirror.trim()) t.push(`apkmirror-dlurl = ${q(a.apkMirror.trim())}`);
+    if (a.archive.trim()) t.push(`archive-dlurl = ${q(a.archive.trim())}`);
+    if (a.direct.trim()) t.push(`direct-dlurl = ${q(a.direct.trim())}`);
+    if (a.arch) t.push(`arch = ${q(a.arch)}`);
+    if (a.dpi.trim()) t.push(`dpi = ${q(a.dpi.trim())}`);
+    if (a.version.trim()) t.push(`version = ${q(a.version.trim())}`);
+    if (a.updateChecks) t.push(`enable-update-checks = true`);
+    const ex = block(a.excluded);
+    if (ex) t.push(`excluded-patches = ${ex}`);
+    const inc = block(a.included);
+    if (inc) t.push(`included-patches = ${inc}`);
+    if (a.patcherArgs.trim()) t.push(`patcher-args = ${block(a.patcherArgs) || q(a.patcherArgs.trim())}`);
+    out.push(`\n[${a.id.trim() || "Unnamed"}]`, ...t);
+  }
+  return out.join("\n") + "\n";
+}
+
+function warnings() {
+  const w = [];
+  const seen = new Set();
+  for (const a of state.apps) {
+    const id = a.id.trim() || "Unnamed";
+    if (seen.has(id)) w.push(`Duplicate table name [${id}] — TOML would be invalid.`);
+    seen.add(id);
+    if (!a.apkMirror.trim() && !a.archive.trim() && !a.direct.trim())
+      w.push(`[${id}] has no download URL — build.sh will abort for it.`);
+    if (a.arch === "both" && !/^(YouTube|Music)$/i.test(a.appName || ""))
+      w.push(`[${id}] uses arch "both", which builds two APKs and needs both ABIs to exist.`);
+  }
+  return w;
+}
+
+function update() {
+  document.getElementById("out").textContent = toml();
+  const w = warnings();
+  const box = document.getElementById("warnings");
+  box.hidden = w.length === 0;
+  box.innerHTML = w.length ? `<strong>${w.length} warning${w.length>1?"s":""}</strong><ul>${w.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : "";
+}
+
+/* ---------- events ---------- */
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.key) {
+    const a = state.apps.find(x => x.uid === Number(el.dataset.uid));
+    if (!a) return;
+    a[el.dataset.key] = el.type === "checkbox" ? el.checked : el.value;
+    update();
+  } else if (el.dataset.global) {
+    const k = el.dataset.global;
+    state.globals[k] = el.type === "checkbox" ? el.checked : el.value;
+    update();
+  }
+});
+
+document.addEventListener("click", e => {
+  const del = e.target.closest("[data-del]");
+  if (del) {
+    state.apps = state.apps.filter(a => a.uid !== Number(del.dataset.del));
+    renderApps(); update(); return;
+  }
+  const pre = e.target.closest("[data-preset]");
+  if (pre) {
+    const a = state.apps.find(x => x.uid === Number(pre.dataset.uid));
+    Object.assign(a, PRESETS[pre.dataset.preset]);
+    renderApps(); update(); return;
+  }
+});
+
+document.getElementById("add").onclick = () => {
+  state.apps.push(newApp({ id:`App-${state.apps.length+1}` }));
+  renderApps(); update();
+};
+
+document.getElementById("copy").onclick = async () => {
+  try { await navigator.clipboard.writeText(toml()); document.getElementById("copy").textContent = "Copied"; }
+  catch { document.getElementById("copy").textContent = "Copy failed"; }
+  setTimeout(() => document.getElementById("copy").textContent = "Copy", 1500);
+};
+
+document.getElementById("download").onclick = () => {
+  const blob = new Blob([toml()], { type:"text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "config.toml";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+seed(); renderApps(); update();
+</script>
+</body>
+</html>

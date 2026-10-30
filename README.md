@@ -20,7 +20,8 @@ Get the [latest CI release](https://github.com/zebz213/revanced-apk/releases).
 
 - Apps, patch sources, brands and architecture live in [`config.toml`](./config.toml).
 - Every option is documented in [`CONFIG.md`](./CONFIG.md).
-- `rvmm-config-gen` generates a config for the upstream module builder, so check its output by hand before using it here.
+- [`tools/config-gen/index.html`](./tools/config-gen/index.html) is a self-contained generator:
+  open it in a browser, edit the apps, copy or download the resulting `config.toml`.
 
 ## Building
 

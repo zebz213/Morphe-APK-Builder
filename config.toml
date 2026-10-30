@@ -3,7 +3,7 @@ parallel-jobs = 1
 # add 'enabled = false' for not patching a specific app or remove it from the config
 # see CONFIG.md for all options
 
-# you can use rvmm-config-gen to generate a config
+# generate one with tools/config-gen/index.html (open it in a browser)
 
 [YouTube-Morphe]
 app-name = "YouTube"
