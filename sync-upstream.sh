@@ -114,7 +114,11 @@ apply_tweaks() {
     [ -f "$f" ] || continue
     case $f in
       README.md)
-        sed -i 's#github\.com/j-hc/revanced-magisk-module/actions#github.com/zebz213/revanced-apk/actions#g' "$f"
+        sed -i \
+          -e 's#https://github\.com/j-hc/revanced-magisk-module#https://github.com/zebz213/revanced-apk#g' \
+          -e 's#https://raw\.githubusercontent\.com/j-hc/revanced-magisk-module#https://raw.githubusercontent.com/zebz213/revanced-apk#g' \
+          -e 's#cd revanced-magisk-module#cd revanced-apk#g' \
+          "$f"
         ;;
     esac
     git add -- "$f"
@@ -132,7 +136,8 @@ fi
 
 git commit --quiet -m "Sync with upstream $UP @ $UP_SHA
 
-Applied upstream content wholesale; kept local versions of: ${PROTECTED[*]}"
+Applied upstream content wholesale; kept local versions of: ${PROTECTED[*]}
+Re-applied local tweaks to: ${REGENERATED[*]}"
 echo "synced to $UP @ $UP_SHA"
 git --no-pager log --oneline -1
 
