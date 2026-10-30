@@ -99,8 +99,7 @@
 
 const PRESETS = {
   morphe:   { patchesSource:"MorpheApp/morphe-patches", cliSource:"MorpheApp/morphe-cli", brand:"Morphe" },
-  revanced: { patchesSource:"", cliSource:"", brand:"" },
-  spotify:  { patchesSource:"", cliSource:"", brand:"", apkMirror:"https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts" },
+  custom:   { patchesSource:"", cliSource:"", brand:"" },
 };
 
 const ARCHES = ["all","both","arm64-v8a","arm-v7a","x86_64","x86"];
@@ -144,7 +143,8 @@ function seed() {
     newApp({ id:"Reddit-Morphe", appName:"Reddit", arch:"all", dpi:"120-640dpi",
       apkMirror:"https://www.apkmirror.com/apk/redditinc/reddit/",
       archive:"https://archive.org/download/jhc-apks/apks/com.reddit.frontpage", ...PRESETS.morphe }),
-    newApp({ id:"Spotify", arch:"all", ...PRESETS.spotify }),
+    newApp({ id:"Spotify", enabled:false, arch:"all",
+      apkMirror:"https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts" }),
   ];
 }
 
@@ -179,7 +179,7 @@ function renderApps() {
       </div>
       <div class="presets">
         <button data-preset="morphe" data-uid="${a.uid}">Morphe source</button>
-        <button data-preset="revanced" data-uid="${a.uid}">ReVanced source</button>
+        <button data-preset="custom" data-uid="${a.uid}">Custom source</button>
       </div>
       ${field(a,"enabled","enabled","check")}
       ${field(a,"appName","app-name")}
@@ -252,6 +252,8 @@ function warnings() {
     seen.add(id);
     if (!a.apkMirror.trim() && !a.archive.trim() && !a.direct.trim())
       w.push(`[${id}] has no download URL — build.sh will abort for it.`);
+    if (a.enabled && !a.patchesSource.trim())
+      w.push(`[${id}] has no patches-source — build.sh falls back to ReVanced/revanced-patches, which is DMCA-blocked (HTTP 451).`);
     if (a.arch === "both" && !/^(YouTube|Music)$/i.test(a.appName || ""))
       w.push(`[${id}] uses arch "both", which builds two APKs and needs both ABIs to exist.`);
   }
