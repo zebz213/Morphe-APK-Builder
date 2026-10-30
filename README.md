@@ -4,7 +4,7 @@
 
 Extensive ReVanced builder  
 
-Get the [latest CI release](https://github.com/j-hc/revanced-magisk-module/releases).
+Get the [latest CI release](https://github.com/zebz213/revanced-apk/releases).
 
 Use [**zygisk-detach**](https://github.com/j-hc/zygisk-detach) to detach YouTube and YT Music from Play Store if you are using magisk modules. 
 
@@ -45,12 +45,12 @@ You can consider using [rvmm-zygisk-mount](https://github.com/j-hc/rvmm-zygisk-m
 ## Building Locally
 ### On Termux
 ```console
-bash <(curl -sSf https://raw.githubusercontent.com/j-hc/revanced-magisk-module/main/build-termux.sh)
+bash <(curl -sSf https://raw.githubusercontent.com/zebz213/revanced-apk/main/build-termux.sh)
 ```
 
 ### On Linux
 ```console
-$ git clone https://github.com/j-hc/revanced-magisk-module --depth 1
-$ cd revanced-magisk-module
+$ git clone https://github.com/zebz213/revanced-apk --depth 1
+$ cd revanced-apk
 $ ./build.sh
 ```
