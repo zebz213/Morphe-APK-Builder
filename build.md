@@ -5,7 +5,7 @@ YouTube-Morphe: 21.20.405
 
 Install [MicroG](https://github.com/MorpheApp/MicroG-RE/) for non-root YouTube and YT Music APKs  
 
-[revanced-apk](https://github.com/zebz213/revanced-apk)
+[Morphe-APK-Builder](https://github.com/zebz213/Morphe-APK-Builder)
   
 Patches: MorpheApp/morphe-patches/patches-1.48.0.mpp  
 [Changelog](https://github.com/MorpheApp/morphe-patches/releases/tag/v1.48.0)
