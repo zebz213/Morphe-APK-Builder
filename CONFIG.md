@@ -19,7 +19,6 @@ remove-mph-integrations-checks = true # remove checks from the morphe integratio
 dpi = "nodpi anydpi 120-640dpi"      # dpi packages to be searched in order. default: "nodpi anydpi"
 
 patches-source = "MorpheApp/morphe-patches" # where to fetch patches bundle from. default: "MorpheApp/morphe-patches"
-# NOTE: ReVanced/revanced-patches is DMCA-blocked (HTTP 451 since 2026-03-24), which is why the default is Morphe.
 cli-source = "MorpheApp/morphe-cli"             # where to fetch cli from. default: "MorpheApp/morphe-cli"
 # options like cli-source can also set per app
 mph-brand = "Morphe" # rebrand to something different. default: "Morphe"

@@ -28,7 +28,6 @@ require_signing_keys() {
 
 if [ "${GITHUB_TOKEN-}" ]; then GH_HEADER="Authorization: token ${GITHUB_TOKEN}"; else GH_HEADER=; fi
 NEXT_VER_CODE=${NEXT_VER_CODE:-$(date +'%Y%m%d')}
-OS=$(uname -o)
 
 toml_prep() {
 	if [ ! -f "$1" ]; then return 1; fi
@@ -192,7 +191,6 @@ set_prebuilts() {
 	arch=$(uname -m)
 	if [ "$arch" = aarch64 ]; then arch=arm64; elif [ "${arch:0:5}" = "armv7" ]; then arch=arm; fi
 	HTMLQ="${BIN_DIR}/htmlq/htmlq-${arch}"
-	AAPT2="${BIN_DIR}/aapt2/aapt2-${arch}"
 	TOML="${BIN_DIR}/toml/tq-${arch}"
 }
 
@@ -328,12 +326,7 @@ patches_list_versions() {
 	local cli_jar=$1 patches_jar=$2 pkg_name=$3 is_experimental=$4
 	local cmd_base="java -jar '$cli_jar' list-versions"
 
-	# TODO: remove this later
-	local cli_name
-	cli_name=$(basename "$cli_jar")
-	if [ "${cli_name::8}" = "revanced" ]; then
-		cmd_base+=" -b"
-	elif [ "$is_experimental" = "true" ]; then
+	if [ "$is_experimental" = "true" ]; then
 		cmd_base+=" -x"
 	fi
 
@@ -611,14 +604,6 @@ patch_apk() {
 
 	local cmd="java -jar '$cli_jar' patch '$stock_input' -o '$patched_apk' -p '$patches_jar' --keystore='$KS_FILE' \
 --keystore-entry-password='$KS_KEY_PASS' --keystore-password='$KS_STORE_PASS' --signer='$KS_ALIAS' --keystore-entry-alias='$KS_ALIAS' -t '$tmp_files' $patcher_args"
-
-	# TODO: remove this later
-	local cli_name
-	cli_name=$(basename "$cli_jar")
-	if [ "${cli_name::8}" = "revanced" ]; then
-		cmd+=" -b"
-		if [ "$OS" = "Android" ]; then cmd+=" --custom-aapt2-binary='${AAPT2}'"; fi
-	fi
 
 	pr "$cmd"
 	if eval "$cmd"; then [ -f "$patched_apk" ]; else

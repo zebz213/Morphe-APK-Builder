@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Inspect or pull updates from j-hc/revanced-magisk-module.
+# Inspect or pull updates from the `upstream` remote (configure separately if unset).
 #
 #   ./sync-upstream.sh           show what upstream changed since our last merge
 #   ./sync-upstream.sh --merge   merge upstream/main; conflicts are left to you
