@@ -48,10 +48,6 @@ for table_name in $(toml_get_table_names); do
 	enabled=$(toml_get "$t" enabled) || enabled=true
 	vtf "$enabled" "enabled"
 	if [ "$enabled" = false ]; then continue; fi
-	if ((idx >= PARALLEL_JOBS)); then
-		wait -n
-		idx=$((idx - 1))
-	fi
 
 	declare -A app_args=()
 	patches_src=$(toml_get "$t" patches-source) || patches_src=$DEF_PATCHES_SRC
