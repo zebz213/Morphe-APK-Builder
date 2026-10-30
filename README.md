@@ -20,7 +20,7 @@ Get the [latest CI release](https://github.com/zebz213/Morphe-APK-Builder/releas
 
 - Apps, patch sources, brands and architecture live in [`config.toml`](./config.toml).
 - Every option is documented in [`CONFIG.md`](./CONFIG.md).
-- Generate one in the browser: **<https://zebz213.github.io/Morphe-APK-Builder/>** — toggle apps,
+- Generate one in the browser: **[Config-Gen Tool](https://zebz213.github.io/Morphe-APK-Builder/)** — toggle apps,
   patch lists and architecture, then copy or download the resulting `config.toml`.
   The same page lives at [`tools/config-gen/index.html`](./tools/config-gen/index.html) for
   offline use.
