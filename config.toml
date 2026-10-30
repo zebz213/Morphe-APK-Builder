@@ -30,5 +30,5 @@ archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.reddit.frontpage
 dpi = "120-640dpi"
 
 [Spotify]
-enabled = false # no live patch source exists for Spotify; re-enable once one does
+enabled = false # Spotify can't be built right now: the ReVanced patches repo is DMCA-blocked and Morphe has no Spotify patches
 apkmirror-dlurl = "https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts"

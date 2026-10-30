@@ -483,69 +483,6 @@ get_apkmirror_resp() {
 	__APKMIRROR_CAT__="${1##*/}"
 }
 
-# -------------------- uptodown --------------------
-get_uptodown_resp() {
-	__UPTODOWN_RESP__=$(req "${1}/versions" -) || return 1
-	__UPTODOWN_RESP_PKG__=$(req "${1}/download" -) || return 1
-}
-get_uptodown_vers() { $HTMLQ --text ".version" <<<"$__UPTODOWN_RESP__"; }
-dl_uptodown() {
-	local uptodown_dlurl=$1 version=$2 output=$3 arch=$4 _dpi=$5
-	if [ "$arch" = "arm-v7a" ]; then arch="armeabi-v7a"; fi
-
-	local apparch=('arm64-v8a, armeabi-v7a, x86_64' 'arm64-v8a, armeabi-v7a, x86, x86_64' 'arm64-v8a, armeabi-v7a')
-	if [ "$arch" != "all" ]; then
-		apparch+=("$arch")
-	fi
-
-	local op resp data_code
-	data_code=$($HTMLQ "#detail-app-name" --attribute data-code <<<"$__UPTODOWN_RESP__")
-	local versionURL=""
-	local is_bundle=false
-	for i in {1..20}; do
-		resp=$(req "${uptodown_dlurl}/apps/${data_code}/versions/${i}" -)
-		if ! op=$(jq -e -r ".data | map(select(.version == \"${version}\")) | .[0]" <<<"$resp"); then
-			continue
-		fi
-		if [ "$(jq -e -r ".kindFile" <<<"$op")" = "xapk" ]; then is_bundle=true; fi
-		if versionURL=$(jq -e -r '.versionURL' <<<"$op"); then break; else return 1; fi
-	done
-	if [ -z "$versionURL" ]; then return 1; fi
-	versionURL=$(jq -e -r '.url + "/" + .extraURL + "/" + (.versionID | tostring)' <<<"$versionURL")
-	resp=$(req "$versionURL" -) || return 1
-
-	local data_version files node_arch="" data_file_id node_class
-	data_version=$($HTMLQ '.button.variants' --attribute data-version <<<"$resp") || return 1
-	if [ "$data_version" ]; then
-		files=$(req "${uptodown_dlurl%/*}/app/${data_code}/version/${data_version}/files" - | jq -e -r .content) || return 1
-		for ((n = 1; n < 12; n += 1)); do
-			node_class=$($HTMLQ -w -t ".content > :nth-child($n)" --attribute class <<<"$files") || return 1
-			if [ "$node_class" != "variant" ]; then
-				node_arch=$($HTMLQ -w -t ".content > :nth-child($n)" <<<"$files" | xargs) || return 1
-				continue
-			fi
-			if [ -z "$node_arch" ]; then return 1; fi
-			if ! isoneof "$node_arch" "${apparch[@]}"; then continue; fi
-
-			file_type=$($HTMLQ -w -t ".content > :nth-child($n) > .v-file > span" <<<"$files") || return 1
-			if [ "$file_type" = "xapk" ]; then is_bundle=true; else is_bundle=false; fi
-			data_file_id=$($HTMLQ ".content > :nth-child($n) > .v-report" --attribute data-file-id <<<"$files") || return 1
-			resp=$(req "${uptodown_dlurl}/download/${data_file_id}-x" -)
-			break
-		done
-		if [ $n -eq 12 ]; then return 1; fi
-	fi
-	local data_url
-	data_url=$($HTMLQ "#detail-download-button" --attribute data-url <<<"$resp") || return 1
-	if [ $is_bundle = true ]; then
-		req "https://dw.uptodown.com/dwn/${data_url}" "$output.apkm" || return 1
-		merge_splits "${output}.apkm" "${output}" || return 1
-	else
-		req "https://dw.uptodown.com/dwn/${data_url}" "$output"
-	fi
-}
-get_uptodown_pkg_name() { $HTMLQ --text "tr.full:nth-child(1) > td:nth-child(3)" <<<"$__UPTODOWN_RESP_PKG__"; }
-
 # -------------------- archive --------------------
 dl_archive() {
 	local url=$1 version=$2 output=$3 arch=$4
