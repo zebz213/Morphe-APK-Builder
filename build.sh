@@ -118,7 +118,7 @@ _clean_tmp
 if [ -z "$(ls -A1 "${BUILD_DIR}")" ]; then abort "All builds failed."; fi
 
 log "\nInstall [MicroG](https://github.com/MorpheApp/MicroG-RE/) for non-root YouTube and YT Music APKs"
-log "\n[revanced-apk](https://github.com/zebz213/revanced-apk)\n"
+log "\n[Morphe-APK-Builder](https://github.com/zebz213/Morphe-APK-Builder)\n"
 log "$(cat "$TEMP_DIR"/*/changelog.md)"
 
 SKIPPED=$(cat "$TEMP_DIR"/skipped 2>/dev/null || :)

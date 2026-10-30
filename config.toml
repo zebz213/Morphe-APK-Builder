@@ -1,7 +1,7 @@
 # add 'enabled = false' for not patching a specific app or remove it from the config
 # see CONFIG.md for all options
 
-# generate one with tools/config-gen/index.html (open it in a browser)
+# generate one at https://zebz213.github.io/Morphe-APK-Builder/ (or tools/config-gen/index.html offline)
 
 [YouTube-Morphe]
 app-name = "YouTube"
