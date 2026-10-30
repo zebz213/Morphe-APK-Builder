@@ -15,7 +15,6 @@ There exists an example below with all defaults shown and all the keys explicitl
 **All keys are optional** (except download urls) and are assigned to their default values if not set explicitly.  
 
 ```toml
-parallel-jobs = 1                    # currently ignored: build.sh pins this to 1
 remove-rv-integrations-checks = true # remove checks from the revanced integrations
 dpi = "nodpi anydpi 120-640dpi"      # dpi packages to be searched in order. default: "nodpi anydpi"
 

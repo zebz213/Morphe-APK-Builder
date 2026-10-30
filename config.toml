@@ -1,5 +1,3 @@
-parallel-jobs = 1
-
 # add 'enabled = false' for not patching a specific app or remove it from the config
 # see CONFIG.md for all options
 

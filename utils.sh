@@ -261,7 +261,8 @@ _req() {
 			return
 		fi
 	fi
-	if ! curl -L -c "$TEMP_DIR/cookie.txt" -b "$TEMP_DIR/cookie.txt" --connect-timeout 10 --retry 1 --fail -s -S "$@" "$ip" -o "$dlp"; then
+	if ! curl -L -c "$TEMP_DIR/cookie.txt" -b "$TEMP_DIR/cookie.txt" --connect-timeout 10 --max-time 1800 \
+		--retry 3 --retry-delay 2 --retry-connrefused --fail -s -S "$@" "$ip" -o "$dlp"; then
 		epr "Request failed: $ip"
 		if [ "$dlp" != - ]; then rm -f "$dlp"; fi
 		return 1
@@ -437,7 +438,7 @@ dl_apkmirror() {
 	local url=$1 version=${2// /-} output=$3 arch=$4 dpi=$5 is_bundle=false
 
 	if [ -f "${output}.apkm" ]; then
-		merge_splits "${output}.apkm" "${output}"
+		merge_splits "${output}.apkm" "${output}" || return 1
 		return 0
 	fi
 
@@ -465,7 +466,7 @@ dl_apkmirror() {
 
 	if [ "$is_bundle" = true ]; then
 		req "$url" "${output}.apkm" || return 1
-		merge_splits "${output}.apkm" "${output}"
+		merge_splits "${output}.apkm" "${output}" || return 1
 	else
 		req "$url" "${output}" || return 1
 	fi
@@ -545,7 +546,7 @@ dl_uptodown() {
 	data_url=$($HTMLQ "#detail-download-button" --attribute data-url <<<"$resp") || return 1
 	if [ $is_bundle = true ]; then
 		req "https://dw.uptodown.com/dwn/${data_url}" "$output.apkm" || return 1
-		merge_splits "${output}.apkm" "${output}"
+		merge_splits "${output}.apkm" "${output}" || return 1
 	else
 		req "https://dw.uptodown.com/dwn/${data_url}" "$output"
 	fi
@@ -558,7 +559,7 @@ dl_archive() {
 	local path version=${version// /}
 
 	if [ -f "${output}.apkm" ]; then
-		merge_splits "${output}.apkm" "$output"
+		merge_splits "${output}.apkm" "$output" || return 1
 		return 0
 	fi
 
@@ -568,7 +569,7 @@ dl_archive() {
 
 	if [ "${path##*.}" = "apkm" ]; then
 		req "${url}/${path}" "${output}.apkm" || return 1
-		merge_splits "${output}.apkm" "$output"
+		merge_splits "${output}.apkm" "$output" || return 1
 	else
 		req "${url}/${path}" "${output}" || return 1
 	fi
@@ -591,7 +592,7 @@ dl_direct() {
 	fi
 	if [ "${url##*.}" = "apkm" ]; then
 		req "$url" "${output}.apkm" || return 1
-		merge_splits "${output}.apkm" "$output"
+		merge_splits "${output}.apkm" "$output" || return 1
 	else
 		req "$url" "${output}" || return 1
 	fi
@@ -732,7 +733,7 @@ build_rv() {
 		done
 		if [ ! -f "$stock_apk" ]; then
 			epr "Stock apk not found ($stock_apk)"
-			return 0
+			return 1
 		fi
 	fi
 
@@ -743,13 +744,13 @@ build_rv() {
 		local a="${stock_apk}-zip/base.apk"
 		if ! sig_op=$(check_sig "$a" "$pkg_name" 2>&1); then
 			epr "Not building $table, apk signature mismatch '$a': $sig_op"
-			return 0
+			return 1
 		fi
 		rm -rf "${stock_apk}-zip" || :
 	else
 		if ! sig_op=$(check_sig "$stock_apk" "$pkg_name" 2>&1); then
 			epr "Not building $table, apk signature mismatch '$stock_apk': $sig_op"
-			return 0
+			return 1
 		fi
 	fi
 	log "${table}: ${version}"
@@ -822,7 +823,7 @@ build_rv() {
 		if [ "${NORB:-}" != true ] || { [ ! -f "$patched_apk" ] && [ ! -f "$apk_output" ]; }; then
 			if ! patch_apk "$stock_apk_to_patch" "$patched_apk" "${patcher_args[*]}" "${args[cli]}" "${args[ptjar]}"; then
 				epr "Building '${table}' failed!"
-				return 0
+				return 1
 			fi
 		fi
 		rm "$stock_apk_to_patch"

@@ -9,9 +9,14 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: revanced-apk-build
+  cancel-in-progress: false
+
 jobs:
   run:
-    permissions: write-all
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-java@v5
@@ -113,6 +118,13 @@ jobs:
             git push origin HEAD:update
           else
             echo "no changes!"
+          fi
+
+      - name: Fail if any app failed
+        run: |
+          if [ -s temp/failed ]; then
+            echo "::error::These apps failed to build: $(tr '\n' ' ' < temp/failed)"
+            exit 1
           fi
 
       - name: Report to Telegram

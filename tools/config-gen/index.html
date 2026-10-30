@@ -72,9 +72,6 @@
         <input type="text" id="g-dpi" placeholder="nodpi anydpi" data-global="dpi"></div>
       <div class="row"><label for="g-checks">remove-rv-integrations-checks</label>
         <div><input type="checkbox" id="g-checks" checked data-global="removeChecks"></div></div>
-      <div class="row"><label for="g-jobs">parallel-jobs</label>
-        <input type="text" id="g-jobs" value="1" data-global="parallelJobs"></div>
-      <p class="hint">parallel-jobs is currently ignored by build.sh (pinned to 1).</p>
     </section>
 
     <div id="apps"></div>
@@ -106,7 +103,7 @@ const ARCHES = ["all","both","arm64-v8a","arm-v7a","x86_64","x86"];
 let appSeq = 0;
 
 const state = {
-  globals: { dpi:"", removeChecks:true, parallelJobs:"1" },
+  globals: { dpi:"", removeChecks:true },
   apps: [],
 };
 
@@ -214,7 +211,6 @@ function block(text) {
 
 function toml() {
   const g = state.globals, out = [];
-  if (g.parallelJobs) out.push(`parallel-jobs = ${g.parallelJobs}`);
   out.push(`remove-rv-integrations-checks = ${g.removeChecks}`);
   if (g.dpi.trim()) out.push(`dpi = ${q(g.dpi.trim())}`);
 
