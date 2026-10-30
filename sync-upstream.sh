@@ -17,8 +17,14 @@ UPSTREAM_BRANCH=${UPSTREAM_BRANCH:-main}
 # ---- files kept across syncs -----------------------------------------
 PROTECTED=(
   config.toml       # app selection, patch sources, brands
-  README.md         # CI badge points at this repo, not j-hc's
   sync-upstream.sh  # this script (not part of upstream)
+)
+# ----------------------------------------------------------------------
+
+# ---- upstream files that get local tweaks after every sync -----------
+# Follow upstream normally, then `apply_tweaks` below rewrites them.
+REGENERATED=(
+  README.md         # badges must point at this repo, not j-hc's
 )
 # ----------------------------------------------------------------------
 
@@ -59,13 +65,21 @@ is_protected() {
   return 1
 }
 
+is_regenerated() {
+  local f=$1 p
+  for p in "${REGENERATED[@]}"; do
+    [ "$f" = "$p" ] && return 0
+  done
+  return 1
+}
+
 # Refuse to silently drop commits that touched unprotected files since the last sync.
 base=$(git log -1 --format=%H --grep '^Sync with upstream' 2>/dev/null || true)
 dropped=()
 if [ -n "$base" ]; then
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    is_protected "$f" || dropped+=("$f")
+    is_protected "$f" || is_regenerated "$f" || dropped+=("$f")
   done < <(git diff --name-only "$base" HEAD)
 fi
 if [ ${#dropped[@]} -gt 0 ] && [ "$YES" = 0 ]; then
@@ -92,6 +106,21 @@ for p in "${PROTECTED[@]}"; do
   cp -a "$backup/$p" "$p"
   git add -- "$p"
 done
+
+# Local tweaks re-applied on top of the freshly synced upstream files.
+apply_tweaks() {
+  local f
+  for f in "${REGENERATED[@]}"; do
+    [ -f "$f" ] || continue
+    case $f in
+      README.md)
+        sed -i 's#github\.com/j-hc/revanced-magisk-module/actions#github.com/zebz213/revanced-apk/actions#g' "$f"
+        ;;
+    esac
+    git add -- "$f"
+  done
+}
+apply_tweaks
 
 find . -mindepth 1 -type d -empty -not -path './.git/*' -print0 2>/dev/null |
   xargs -0 -r rmdir 2>/dev/null || true
