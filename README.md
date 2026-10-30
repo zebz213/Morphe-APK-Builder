@@ -1,48 +1,29 @@
-# ReVanced Magisk Module
-[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/rvc_magisk)
+# ReVanced APK builder
+
 [![CI](https://github.com/zebz213/revanced-apk/actions/workflows/ci.yml/badge.svg?event=schedule)](https://github.com/zebz213/revanced-apk/actions/workflows/ci.yml)
 
-Extensive ReVanced builder  
+Builds **non-root** ReVanced/Morphe APKs for whatever is listed in [`config.toml`](./config.toml).
+No Magisk or KernelSU module is produced — there is nothing to flash.
 
 Get the [latest CI release](https://github.com/zebz213/revanced-apk/releases).
 
-Use [**zygisk-detach**](https://github.com/j-hc/zygisk-detach) to detach YouTube and YT Music from Play Store if you are using magisk modules. 
-
 <details><summary><big>Features</big></summary>
 <ul>
- <li> Supports all present and future ReVanced apps (including projects implementing the same interface like Morphe)</li>
- <li> Receives in-app updates</li>
- <li> Can build modules and non-root APKs</li>
- <li> Updated daily with the latest versions of apps and patches</li>
- <li> Optimizes APKs and modules for size</li>
- <li> Modules</li>
-    <ul>
-     <li> handle installation of the correct version of the stock app and all that</li>
-     <li> do not trigger root detections</li>
-     <li> receive updates from Magisk/KernelSU app</li>
-     <li> recompile invalidated odex for faster usage</li>
-    </ul>
+ <li>Non-root APKs only, signed with this repo's own key</li>
+ <li>ReVanced and Morphe patch sources, chosen per app</li>
+ <li>Optional in-app update checks for APK builds</li>
+ <li>Rebuilt daily with the latest app versions and patches</li>
 </ul>
 </details>
 
-## To include/exclude patches or patch other apps
+## Configure
 
- * Star the repo :eyes:
- * Use the repo as a [template](https://github.com/new?template_name=revanced-apk&template_owner=zebz213)
- * Customize [`config.toml`](./config.toml) using [rvmm-config-gen](https://j-hc.github.io/rvmm-config-gen/)
- * Run the build [workflow](../../actions/workflows/build.yml)
- * Grab your modules and APKs from [releases](../../releases)
+- Apps, patch sources, brands and architecture live in [`config.toml`](./config.toml).
+- Every option is documented in [`CONFIG.md`](./CONFIG.md).
+- `rvmm-config-gen` generates a config for the upstream module builder, so check its output by hand before using it here.
 
-also see here [`CONFIG.md`](./CONFIG.md)
+## Building
 
-## If you are having trouble with the classic mount method of the modules
-such as,
-- **"Reflash needed"** error after reboots
-- **"Suspicious mount detected"** warnings from root detector apps
-
-You can consider using [rvmm-zygisk-mount](https://github.com/j-hc/rvmm-zygisk-mount)
-
-## Building Locally
 ### On Termux
 ```console
 bash <(curl -sSf https://raw.githubusercontent.com/zebz213/revanced-apk/main/build-termux.sh)
@@ -54,3 +35,17 @@ $ git clone https://github.com/zebz213/revanced-apk --depth 1
 $ cd revanced-apk
 $ ./build.sh
 ```
+
+Finished APKs are written to `build/`.
+
+## Signing
+
+Builds are signed with a private key that is **not** in this repository. CI decodes it
+from repository secrets (`KEYSTORE_P12_B64`, `KEYSTORE_BKS_B64`, `KEYSTORE_PASS`,
+`KEYSTORE_ALIAS`) and fails the run if they are missing.
+
+For a local build, create a gitignored `.env.keys` with `KS_FILE`, `KS_P12_FILE`,
+`KS_ALIAS` and `KS_STORE_PASS`; it is sourced automatically (see the top of `utils.sh`).
+
+APK updates must be signed with the same key as the installed app — builds signed with a
+different key have to be installed after uninstalling the old one.

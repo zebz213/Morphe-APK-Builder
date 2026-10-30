@@ -15,8 +15,7 @@ There exists an example below with all defaults shown and all the keys explicitl
 **All keys are optional** (except download urls) and are assigned to their default values if not set explicitly.  
 
 ```toml
-parallel-jobs = 1                    # amount of cores to use for parallel patching, if not set $(nproc) is used
-compression-level = 9                # module zip compression level
+parallel-jobs = 1                    # currently ignored: build.sh pins this to 1
 remove-rv-integrations-checks = true # remove checks from the revanced integrations
 dpi = "nodpi anydpi 120-640dpi"      # dpi packages to be searched in order. default: "nodpi anydpi"
 
@@ -31,7 +30,7 @@ cli-version = "v5.0.0"       # 'latest', 'dev', or a version number. default: "l
 [Some-App]
 app-name = "SomeApp" # if set, release name becomes SomeApp instead of Some-App. default is same as table name, which is 'Some-App' here.
 enabled = true       # whether to build the app. default: true
-build-mode = "apk"   # 'both', 'apk' or 'module'. default: apk
+build-mode = "apk"   # only 'apk' (non-root) is supported
 
 # 'auto' option gets the latest possible version supported by all the included patches
 # 'latest' gets the latest stable without checking patches support. 'beta' gets the latest beta/alpha
@@ -51,7 +50,6 @@ excluded-patches = """\
   """
 
 included-patches = "'Some Patch'"                          # whitespace seperated list of non-default patches to include. default: ""
-include-stock = "merged"                                   # 'merged', 'split' or 'disable'. default: merged
 exclusive-patches = false                                  # exclude all patches by default. default: false
 
 # enables in-app update check for `apk` build-mode. default: false
@@ -62,7 +60,6 @@ apkmirror-dlurl = "https://www.apkmirror.com/apk/inc/app"
 # direct download url. the url must have point to an apk file with name format shown in this example
 direct-dlurl = "https://website/com.google.android.youtube-20.40.45-all.apk"
 
-module-prop-name = "some-app-module"                       # module prop name.
 dpi = "360-480dpi"                                         # used to select apk variant from apkmirror. default: nodpi
 arch = "arm64-v8a"                                         # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
 ```
