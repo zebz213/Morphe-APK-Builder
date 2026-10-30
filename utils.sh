@@ -14,8 +14,17 @@ if [ -f "$KS_ENV_FILE" ]; then . "$KS_ENV_FILE"; fi
 KS_FILE=${KS_FILE:-ks.keystore}
 KS_P12_FILE=${KS_P12_FILE:-ks-p12.keystore}
 KS_ALIAS=${KS_ALIAS:-jhc}
-KS_STORE_PASS=${KS_STORE_PASS:-123456789}
+KS_STORE_PASS=${KS_STORE_PASS:-}
 KS_KEY_PASS=${KS_KEY_PASS:-$KS_STORE_PASS}
+
+require_signing_keys() {
+	if [ -z "$KS_STORE_PASS" ] || [ ! -f "$KS_FILE" ] || [ ! -f "$KS_P12_FILE" ]; then
+		abort "signing keys are not configured.
+	Need '$KS_FILE', '$KS_P12_FILE' and KS_STORE_PASS.
+	Local builds: put them in .env.keys (sourced automatically, see below).
+	CI: set the KEYSTORE_P12_B64 / KEYSTORE_BKS_B64 / KEYSTORE_PASS / KEYSTORE_ALIAS secrets."
+	fi
+}
 
 if [ "${GITHUB_TOKEN-}" ]; then GH_HEADER="Authorization: token ${GITHUB_TOKEN}"; else GH_HEADER=; fi
 NEXT_VER_CODE=${NEXT_VER_CODE:-$(date +'%Y%m%d')}
@@ -378,6 +387,7 @@ merge_splits() {
 		return 1
 	fi
 	# sign the merged stock apk
+	require_signing_keys
 	if ! OP=$(java -jar "$APKSIGNER" sign --ks "$KS_P12_FILE" --ks-pass pass:"$KS_STORE_PASS" --key-pass pass:"$KS_KEY_PASS" --ks-key-alias "$KS_ALIAS" \
 		--out "${output}" "${output}-unsigned"); then
 		epr "apksigner error: $OP"
@@ -595,6 +605,8 @@ patch_apk() {
 	local stock_input=$1 patched_apk=$2 patcher_args=$3 cli_jar=$4 patches_jar=$5
 	local tmp_files
 	tmp_files="$(pwd)/$(mktemp -d -p "$TEMP_DIR")"
+
+	require_signing_keys
 
 	local cmd="java -jar '$cli_jar' patch '$stock_input' -o '$patched_apk' -p '$patches_jar' --keystore='$KS_FILE' \
 --keystore-entry-password='$KS_KEY_PASS' --keystore-password='$KS_STORE_PASS' --signer='$KS_ALIAS' --keystore-entry-alias='$KS_ALIAS' -t '$tmp_files' $patcher_args"
