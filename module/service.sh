@@ -1,5 +1,6 @@
 #!/system/bin/sh
-MODDIR=${0%/*}
+MODDIR="$(dirname "$(readlink -f "$0")")"
+export MODDIR
 . "$MODDIR/utils.sh"
 
 run() {
@@ -13,7 +14,7 @@ run() {
 	do sleep 2; done
 
 	if [ $SVCL != 0 ]; then
-		ch_desc_err "App not installed"
+		ch_desc_err "App not installed: '$BASEPATH'"
 		return
 	fi
 	sleep 4
@@ -21,6 +22,8 @@ run() {
 	mount_rv "$BASEPATH"
 }
 
-if [ ! -f "$MODDIR/disabled_by_action" ]; then
+if [ -d "/data/adb/modules/rvmm-zygisk-mount/" ] && [ ! -f "/data/adb/modules/rvmm-zygisk-mount/disable" ]; then
+	ch_desc "⚠️ Mounting is being handled by rvmm-zygisk-mount"
+elif [ ! -f "$MODDIR/disabled_by_action" ]; then
 	run
 fi
