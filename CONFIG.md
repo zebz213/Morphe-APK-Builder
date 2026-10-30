@@ -31,7 +31,6 @@ cli-version = "v5.0.0"       # 'latest', 'dev', or a version number. default: "l
 [Some-App]
 app-name = "SomeApp" # if set, release name becomes SomeApp instead of Some-App. default is same as table name, which is 'Some-App' here.
 enabled = true       # whether to build the app. default: true
-build-mode = "apk"   # only 'apk' (non-root) is supported
 
 # 'auto' option gets the latest possible version supported by all the included patches
 # 'latest' gets the latest stable without checking patches support. 'beta' gets the latest beta/alpha
@@ -53,7 +52,7 @@ excluded-patches = """\
 included-patches = "'Some Patch'"                          # whitespace seperated list of non-default patches to include. default: ""
 exclusive-patches = false                                  # exclude all patches by default. default: false
 
-# enables in-app update check for `apk` build-mode. default: false
+# enables in-app update check for the built APK. default: false
 # as of now, works only for yt, yt music, twitter and gphotos
 enable-update-checks = true
 

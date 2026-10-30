@@ -218,7 +218,6 @@ function toml() {
     const t = [];
     if (a.appName.trim()) t.push(`app-name = ${q(a.appName.trim())}`);
     t.push(`enabled = ${a.enabled}`);
-    t.push(`build-mode = "apk"`);
     if (a.patchesSource.trim()) t.push(`patches-source = ${q(a.patchesSource.trim())}`);
     if (a.cliSource.trim()) t.push(`cli-source = ${q(a.cliSource.trim())}`);
     if (a.brand.trim()) t.push(`rv-brand = ${q(a.brand.trim())}`);

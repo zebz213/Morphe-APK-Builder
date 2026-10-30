@@ -708,9 +708,6 @@ build_rv() {
 		return 0
 	fi
 
-	# only non-root APK builds are supported
-	build_mode_arr=(apk)
-
 	pr "Choosing version '${version}' for ${table}"
 	local version_f=${version// /}
 	version_f=${version_f#v}
@@ -769,74 +766,65 @@ build_rv() {
 		p_patcher_args=("${p_patcher_args[@]//-[ei] ${microg_patch}/}")
 	fi
 
-	local patcher_args patched_apk build_mode
+	local patcher_args patched_apk
 	local rv_brand_f=${args[rv_brand],,}
 	rv_brand_f=${rv_brand_f// /-}
-	for build_mode in "${build_mode_arr[@]}"; do
-		patcher_args=("${p_patcher_args[@]}")
-		pr "Building '${table}' in '$build_mode' mode"
-		if [ -n "$microg_patch" ]; then
-			patched_apk="${TEMP_DIR}/${app_name_l}-${rv_brand_f}-${version_f}-${arch_f}-${build_mode}.apk"
+	patcher_args=("${p_patcher_args[@]}")
+	pr "Building '${table}'"
+	patched_apk="${TEMP_DIR}/${app_name_l}-${rv_brand_f}-${version_f}-${arch_f}.apk"
+
+	if [ -n "$microg_patch" ]; then
+		patcher_args+=("-e \"${microg_patch}\"")
+	fi
+
+	if [ "${args[enable_update_checks]}" = "true" ] && [ -n "${GITHUB_REPOSITORY-}" ]; then
+		local p="$TEMP_DIR/jhc-update-check.mpp"
+		if [ ! -f $p ]; then
+			local resp dlurl
+			resp=$(gh_req "https://api.github.com/repos/j-hc/morphe-jhc-update-check-patch/releases/latest" -) || return 1
+			dlurl=$(jq -e -r '.assets[0] | .browser_download_url' <<<"$resp") || return 1
+			gh_dl $p "$dlurl" >/dev/null || return 1
+		fi
+		patcher_args+=("-p '$p'")
+
+		local v
+		v=$(git tag --sort=committerdate | tail -1) || :
+		if [[ $v =~ ^[0-9]+$ ]]; then
+			v=$((v + 1))
+			patcher_args+=("-e 'j-hc Update Check Res' -OcurrentTag='\"$v\"' -OupdateRepo='\"${GITHUB_REPOSITORY}\"'")
 		else
-			patched_apk="${TEMP_DIR}/${app_name_l}-${rv_brand_f}-${version_f}-${arch_f}.apk"
+			epr "'$v' is not a proper version tag"
 		fi
+	fi
 
-		if [ -n "$microg_patch" ]; then
-			patcher_args+=("-e \"${microg_patch}\"")
-		fi
+	local stock_apk_to_patch="${stock_apk}.stripped.apk"
+	cp -f "$stock_apk" "$stock_apk_to_patch"
+	if [ "$arch" = "arm64-v8a" ]; then
+		zip -d "$stock_apk_to_patch" "lib/armeabi-v7a/*" "lib/x86_64/*" "lib/x86/*" >/dev/null 2>&1 || :
+	elif [ "$arch" = "arm-v7a" ]; then
+		zip -d "$stock_apk_to_patch" "lib/arm64-v8a/*" "lib/x86_64/*" "lib/x86/*" >/dev/null 2>&1 || :
+	elif [ "$arch" = "x86" ]; then
+		zip -d "$stock_apk_to_patch" "lib/arm64-v8a/*" "lib/x86_64/*" "lib/armeabi-v7a/*" >/dev/null 2>&1 || :
+	elif [ "$arch" = "x86_64" ]; then
+		zip -d "$stock_apk_to_patch" "lib/arm64-v8a/*" "lib/armeabi-v7a/*" "lib/x86/*" >/dev/null 2>&1 || :
+	else
+		zip -d "$stock_apk_to_patch" "lib/x86_64/*" "lib/x86/*" >/dev/null 2>&1 || :
+	fi
 
-		if [ "${args[enable_update_checks]}" = "true" ] && [ "$build_mode" = "apk" ] && [ -n "${GITHUB_REPOSITORY-}" ]; then
-			local p="$TEMP_DIR/jhc-update-check.mpp"
-			if [ ! -f $p ]; then
-				local resp dlurl
-				resp=$(gh_req "https://api.github.com/repos/j-hc/morphe-jhc-update-check-patch/releases/latest" -) || return 1
-				dlurl=$(jq -e -r '.assets[0] | .browser_download_url' <<<"$resp") || return 1
-				gh_dl $p "$dlurl" >/dev/null || return 1
-			fi
-			patcher_args+=("-p '$p'")
-
-			local v
-			v=$(git tag --sort=committerdate | tail -1) || :
-			if [[ $v =~ ^[0-9]+$ ]]; then
-				v=$((v + 1))
-				patcher_args+=("-e 'j-hc Update Check Res' -OcurrentTag='\"$v\"' -OupdateRepo='\"${GITHUB_REPOSITORY}\"'")
-			else
-				epr "'$v' is not a proper version tag"
-			fi
+	local apk_output="${BUILD_DIR}/${app_name_l}-${rv_brand_f}-v${version_f}-${arch_f}.apk"
+	if [ "${NORB:-}" != true ] || { [ ! -f "$patched_apk" ] && [ ! -f "$apk_output" ]; }; then
+		if ! patch_apk "$stock_apk_to_patch" "$patched_apk" "${patcher_args[*]}" "${args[cli]}" "${args[ptjar]}"; then
+			epr "Building '${table}' failed!"
+			return 1
 		fi
-
-		local stock_apk_to_patch="${stock_apk}.stripped.apk"
-		cp -f "$stock_apk" "$stock_apk_to_patch"
-		if [ "$arch" = "arm64-v8a" ]; then
-			zip -d "$stock_apk_to_patch" "lib/armeabi-v7a/*" "lib/x86_64/*" "lib/x86/*" >/dev/null 2>&1 || :
-		elif [ "$arch" = "arm-v7a" ]; then
-			zip -d "$stock_apk_to_patch" "lib/arm64-v8a/*" "lib/x86_64/*" "lib/x86/*" >/dev/null 2>&1 || :
-		elif [ "$arch" = "x86" ]; then
-			zip -d "$stock_apk_to_patch" "lib/arm64-v8a/*" "lib/x86_64/*" "lib/armeabi-v7a/*" >/dev/null 2>&1 || :
-		elif [ "$arch" = "x86_64" ]; then
-			zip -d "$stock_apk_to_patch" "lib/arm64-v8a/*" "lib/armeabi-v7a/*" "lib/x86/*" >/dev/null 2>&1 || :
-		else
-			zip -d "$stock_apk_to_patch" "lib/x86_64/*" "lib/x86/*" >/dev/null 2>&1 || :
-		fi
-
-		local apk_output="${BUILD_DIR}/${app_name_l}-${rv_brand_f}-v${version_f}-${arch_f}.apk"
-		if [ "${NORB:-}" != true ] || { [ ! -f "$patched_apk" ] && [ ! -f "$apk_output" ]; }; then
-			if ! patch_apk "$stock_apk_to_patch" "$patched_apk" "${patcher_args[*]}" "${args[cli]}" "${args[ptjar]}"; then
-				epr "Building '${table}' failed!"
-				return 1
-			fi
-		fi
-		rm "$stock_apk_to_patch"
-		if [ "$build_mode" = apk ]; then
-			if [ "${NORB:-}" != true ] || { [ ! -f "$patched_apk" ] && [ ! -f "$apk_output" ]; }; then
-				mv -f "$patched_apk" "$apk_output"
-			else
-				cp -f "$patched_apk" "$apk_output"
-			fi
-			pr "Built ${table} (non-root): '${apk_output}'"
-			continue
-		fi
-	done
+	fi
+	rm "$stock_apk_to_patch"
+	if [ "${NORB:-}" != true ] || { [ ! -f "$patched_apk" ] && [ ! -f "$apk_output" ]; }; then
+		mv -f "$patched_apk" "$apk_output"
+	else
+		cp -f "$patched_apk" "$apk_output"
+	fi
+	pr "Built ${table} (non-root): '$apk_output'"
 }
 
 list_args() { tr -d '\t\r' <<<"$1" | tr -s ' ' | sed 's/" "/"\n"/g' | sed 's/\([^"]\)"\([^"]\)/\1'\''\2/g' | grep -v '^$' || :; }
