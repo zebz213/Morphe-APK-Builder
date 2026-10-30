@@ -17,6 +17,7 @@ UPSTREAM_BRANCH=${UPSTREAM_BRANCH:-main}
 # ---- files kept across syncs -----------------------------------------
 PROTECTED=(
   config.toml       # app selection, patch sources, brands
+  README.md         # CI badge points at this repo, not j-hc's
   sync-upstream.sh  # this script (not part of upstream)
 )
 # ----------------------------------------------------------------------
