@@ -8,17 +8,22 @@
 # The two repos share history (see the "Join history with upstream" merge), so
 # this is a plain three-way merge: local changes are kept and only files that
 # both sides touched need manual resolution. Nothing is overwritten wholesale.
+#
+# PROTECTED files are ours. An upstream edit to one of them either conflicts (so
+# it is resolved by hand) or is reported after the merge, so its wording is never
+# replaced silently — compare and merge only the parts worth taking.
 set -euo pipefail
 
 UPSTREAM_REMOTE=${UPSTREAM_REMOTE:-upstream}
 UPSTREAM_BRANCH=${UPSTREAM_BRANCH:-main}
+PROTECTED=(config.toml README.md)
 MERGE=0 PUSH=0
 
 for arg in "$@"; do
   case $arg in
     --merge) MERGE=1 ;;
     --push) MERGE=1; PUSH=1 ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -44,12 +49,23 @@ else
   echo "files upstream changed since ${base:0:7}:"
   git --no-pager diff --stat "$base" "$UP" | sed 's/^/  /'
   echo
+  echo "protected files upstream touched:"
+  touched=0
+  for f in "${PROTECTED[@]}"; do
+    if ! git diff --quiet "$base" "$UP" -- "$f"; then
+      echo "  $f   (compare: git diff ${base:0:7}..$UP -- $f)"
+      touched=1
+    fi
+  done
+  [ "$touched" = 1 ] || echo "  none"
+  echo
 
   if [ "$MERGE" = 0 ]; then
     echo "run with --merge to bring these in (or --push to merge and push)."
     exit 0
   fi
 
+  PRE_MERGE=$(git rev-parse HEAD)
   if ! git merge --no-edit "$UP"; then
     echo
     echo "CONFLICTS — resolve these, then 'git add <file>' and 'git commit':"
@@ -57,6 +73,12 @@ else
     exit 1
   fi
   echo "merged $UP"
+  for f in "${PROTECTED[@]}"; do
+    if ! git diff --quiet "$PRE_MERGE" HEAD -- "$f"; then
+      echo "  note: '$f' changed in this merge — review before pushing:"
+      echo "        git diff ${PRE_MERGE:0:7} HEAD -- $f"
+    fi
+  done
 fi
 
 if [ "$PUSH" = 1 ]; then
