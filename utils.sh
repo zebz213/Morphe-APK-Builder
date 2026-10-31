@@ -373,6 +373,21 @@ isoneof() {
 	return 1
 }
 
+sign_apk() {
+	local input=$1 output=$2
+	require_signing_keys
+	local op
+	if ! op=$(java -jar "$APKSIGNER" sign --ks "$KS_P12_FILE" --ks-pass pass:"$KS_STORE_PASS" \
+		--key-pass pass:"$KS_KEY_PASS" --ks-key-alias "$KS_ALIAS" \
+		--v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
+		--out "$output" "$input" 2>&1); then
+		epr "apksigner error: $op"
+		return 1
+	fi
+	rm -f "${output}.idsig" 2>/dev/null || :
+	return 0
+}
+
 merge_splits() {
 	local bundle=$1 output=$2
 	pr "Merging splits"
@@ -388,12 +403,11 @@ merge_splits() {
 	fi
 	# sign the merged stock apk
 	require_signing_keys
-	if ! OP=$(java -jar "$APKSIGNER" sign --ks "$KS_P12_FILE" --ks-pass pass:"$KS_STORE_PASS" --key-pass pass:"$KS_KEY_PASS" --ks-key-alias "$KS_ALIAS" \
-		--out "${output}" "${output}-unsigned"); then
-		epr "apksigner error: $OP"
+	if ! sign_apk "${output}-unsigned" "${output}"; then
+		epr "apksigner error: could not sign merged apk"
 		return 1
 	fi
-	rm "${output}.idsig" "${output}-unsigned" 2>/dev/null || :
+	rm -f "${output}-unsigned" 2>/dev/null || :
 	return 0
 }
 
@@ -553,6 +567,14 @@ patch_apk() {
 		rm "$patched_apk" 2>/dev/null || :
 		return 1
 	fi
+	# the CLI signs with v2 only; re-sign with v2+v3 so the APK also carries
+	# the rotation-capable scheme (same certificate, no reinstall needed)
+	mv -f "$patched_apk" "${patched_apk}.cli-signed"
+	if ! sign_apk "${patched_apk}.cli-signed" "$patched_apk"; then
+		rm -f "${patched_apk}.cli-signed"
+		return 1
+	fi
+	rm -f "${patched_apk}.cli-signed"
 }
 
 check_sig() {
