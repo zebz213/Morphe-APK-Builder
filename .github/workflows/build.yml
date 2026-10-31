@@ -106,14 +106,16 @@ jobs:
             exit 0
           fi
           LATEST=$(gh release list -L1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
-          if [ -n "$LATEST" ]; then
-            HAVE=$(gh release view "$LATEST" --json assets --jq '.assets[].name')
-            NEW_ONLY=0
-            for f in ./build/*; do
-              grep -qxF "$(basename "$f")" <<<"$HAVE" || NEW_ONLY=1
-            done
-            if [ "$NEW_ONLY" = 0 ]; then
-              echo "Every built APK is already in release $LATEST; skipping release creation."
+          if [ "${{ inputs.from_ci }}" = "true" ] && [ -n "$LATEST" ]; then
+            PREV=$(gh release view "$LATEST" --json body --jq '.body' | sed 's/[[:space:]]*$//')
+            SAME=1
+            while IFS= read -r line; do
+              line="${line%"${line##*[![:space:]]}"}"
+              [ -z "$line" ] && continue
+              if ! grep -qxF -- "$line" <<<"$PREV"; then SAME=0; break; fi
+            done < build.tmp
+            if [ "$SAME" = 1 ]; then
+              echo "Release $LATEST already reflects this build log; skipping release creation."
               exit 0
             fi
           fi
