@@ -31,6 +31,7 @@ jobs:
             echo "first time building!"
             echo "SHOULD_BUILD=1" >> $GITHUB_OUTPUT
           else
+            git checkout origin/update failed_prev 2>/dev/null || rm -f failed_prev
             UPDATE_CFG=$(./build.sh config.toml --config-update)
             if [ "$UPDATE_CFG" ]; then
               echo "'$UPDATE_CFG'"
