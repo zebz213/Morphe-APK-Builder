@@ -119,6 +119,7 @@ function newApp(init) {
     apkMirror: "",
     archive: "",
     direct: "",
+    pkgName: "",
     arch: "all",
     dpi: "",
     version: "auto",
@@ -185,6 +186,7 @@ function renderApps() {
       ${field(a,"apkMirror","apkmirror-dlurl")}
       ${field(a,"archive","archive-dlurl")}
       ${field(a,"direct","direct-dlurl")}
+      ${field(a,"pkgName","pkg-name")}
       ${field(a,"arch","arch","select",ARCHES)}
       ${field(a,"dpi","dpi")}
       ${field(a,"version","version")}
@@ -222,6 +224,7 @@ function toml() {
     if (a.apkMirror.trim()) t.push(`apkmirror-dlurl = ${q(a.apkMirror.trim())}`);
     if (a.archive.trim()) t.push(`archive-dlurl = ${q(a.archive.trim())}`);
     if (a.direct.trim()) t.push(`direct-dlurl = ${q(a.direct.trim())}`);
+    if (a.pkgName.trim()) t.push(`pkg-name = ${q(a.pkgName.trim())}`);
     if (a.arch) t.push(`arch = ${q(a.arch)}`);
     if (a.dpi.trim()) t.push(`dpi = ${q(a.dpi.trim())}`);
     if (a.version.trim()) t.push(`version = ${q(a.version.trim())}`);
