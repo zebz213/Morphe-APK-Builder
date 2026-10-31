@@ -124,7 +124,6 @@ function newApp(init) {
     version: "auto",
     excluded: "",
     included: "",
-    updateChecks: false,
     patcherArgs: "",
   }, init);
 }
@@ -189,7 +188,6 @@ function renderApps() {
       ${field(a,"arch","arch","select",ARCHES)}
       ${field(a,"dpi","dpi")}
       ${field(a,"version","version")}
-      ${field(a,"updateChecks","enable-update-checks","check")}
       ${field(a,"excluded","excluded-patches","area")}
       ${field(a,"included","included-patches","area")}
       ${field(a,"patcherArgs","patcher-args","area")}
@@ -227,7 +225,6 @@ function toml() {
     if (a.arch) t.push(`arch = ${q(a.arch)}`);
     if (a.dpi.trim()) t.push(`dpi = ${q(a.dpi.trim())}`);
     if (a.version.trim()) t.push(`version = ${q(a.version.trim())}`);
-    if (a.updateChecks) t.push(`enable-update-checks = true`);
     const ex = block(a.excluded);
     if (ex) t.push(`excluded-patches = ${ex}`);
     const inc = block(a.included);

@@ -705,26 +705,6 @@ build_rv() {
 		patcher_args+=("-e \"${microg_patch}\"")
 	fi
 
-	if [ "${args[enable_update_checks]}" = "true" ] && [ -n "${GITHUB_REPOSITORY-}" ]; then
-		local p="$TEMP_DIR/jhc-update-check.mpp"
-		if [ ! -f $p ]; then
-			local resp dlurl
-			resp=$(gh_req "https://api.github.com/repos/j-hc/morphe-jhc-update-check-patch/releases/latest" -) || return 1
-			dlurl=$(jq -e -r '.assets[0] | .browser_download_url' <<<"$resp") || return 1
-			gh_dl $p "$dlurl" >/dev/null || return 1
-		fi
-		patcher_args+=("-p '$p'")
-
-		local v
-		v=$(git tag --sort=committerdate | tail -1) || :
-		if [[ $v =~ ^[0-9]+$ ]]; then
-			v=$((v + 1))
-			patcher_args+=("-e 'j-hc Update Check Res' -OcurrentTag='\"$v\"' -OupdateRepo='\"${GITHUB_REPOSITORY}\"'")
-		else
-			epr "'$v' is not a proper version tag"
-		fi
-	fi
-
 	local stock_apk_to_patch="${stock_apk}.stripped.apk"
 	cp -f "$stock_apk" "$stock_apk_to_patch"
 	if [ "$arch" = "arm64-v8a" ]; then
