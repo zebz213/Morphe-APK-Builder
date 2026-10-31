@@ -96,6 +96,18 @@ jobs:
             echo "No APKs were produced; skipping release creation."
             exit 0
           fi
+          LATEST=$(gh release list -L1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
+          if [ -n "$LATEST" ]; then
+            HAVE=$(gh release view "$LATEST" --json assets --jq '.assets[].name')
+            NEW_ONLY=0
+            for f in ./build/*; do
+              grep -qxF "$(basename "$f")" <<<"$HAVE" || NEW_ONLY=1
+            done
+            if [ "$NEW_ONLY" = 0 ]; then
+              echo "Every built APK is already in release $LATEST; skipping release creation."
+              exit 0
+            fi
+          fi
           ls -lh ./build/*
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "Release" --notes "$BODY"
