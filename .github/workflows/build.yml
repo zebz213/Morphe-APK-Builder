@@ -54,6 +54,7 @@ jobs:
         if: ${{ inputs.from_ci }}
         run: |
           if git checkout origin/update build.md; then
+            git checkout origin/update failed_prev 2>/dev/null || rm -f failed_prev
             UPDATE_CFG=$(./build.sh config.toml --config-update)
             if [ "$UPDATE_CFG" ]; then
               echo "'$UPDATE_CFG'"
@@ -71,7 +72,15 @@ jobs:
           echo "NEXT_VER_CODE=$((TAG + 1))" >> $GITHUB_OUTPUT
 
       - name: Build APKs
-        run: if [ -f "config.json" ]; then ./build.sh config.json; else ./build.sh config.toml; fi
+        run: |
+          if [ -f "config.json" ]; then
+            ./build.sh config.json
+          elif [ "${{ inputs.from_ci }}" != "true" ]; then
+            ./build.sh config.toml
+          else
+            echo "::error::config update selected no apps; refusing to build every app"
+            exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: $GITHUB_REPOSITORY
