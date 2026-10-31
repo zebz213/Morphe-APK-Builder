@@ -11,7 +11,7 @@ Get the [latest CI release](https://github.com/zebz213/Morphe-APK-Builder/releas
 <ul>
  <li>Non-root APKs only, signed with this repo's own key</li>
  <li>Morphe patch sources (and other compatible forks), chosen per app</li>
- <li>Optional in-app update checks for APK builds</li>
+ <li>Signed with APK Signature Scheme v2/v3 so they install cleanly on modern Android</li>
  <li>Rebuilt daily with the latest app versions and patches</li>
 </ul>
 </details>

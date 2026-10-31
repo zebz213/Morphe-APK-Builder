@@ -52,8 +52,10 @@ included-patches = "'Some Patch'"                          # whitespace seperate
 exclusive-patches = false                                  # exclude all patches by default. default: false
 
 apkmirror-dlurl = "https://www.apkmirror.com/apk/inc/app"
+archive-dlurl = "https://archive.org/download/<item>/apks/<package>"   # internet archive mirror, one folder per package
 # direct download url. the url must have point to an apk file with name format shown in this example
 direct-dlurl = "https://website/com.google.android.youtube-20.40.45-all.apk"
+pkg-name = "com.google.android.youtube"                    # optional: patch this package instead of looking it up on the source page
 
 dpi = "360-480dpi"                                         # used to select apk variant from apkmirror. default: nodpi
 arch = "arm64-v8a"                                         # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
