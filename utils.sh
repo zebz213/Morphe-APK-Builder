@@ -231,6 +231,12 @@ config_update() {
 					sources["$PATCHES_SRC/$PATCHES_VER"]=1
 					prcfg=true
 					upped+=("$table_name")
+				elif ! grep -q "^${table_name//./\\.}:" build.md; then
+					# patches unchanged, but this app is absent from the last build log:
+					# it failed last time, so retry it on its own instead of treating
+					# it as up to date. Do not flag the whole patches source.
+					prcfg=true
+					upped+=("$table_name")
 				else
 					echo "$OP" >>"$TEMP_DIR"/skipped
 				fi

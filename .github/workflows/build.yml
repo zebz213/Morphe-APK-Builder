@@ -85,6 +85,11 @@ jobs:
           cat build.md >> "$GITHUB_OUTPUT"
           echo "${DELIM}" >> "$GITHUB_OUTPUT"
           cp -f build.md build.tmp
+          if compgen -G "./build/*" >/dev/null; then
+            echo "BUILT=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "BUILT=0" >> "$GITHUB_OUTPUT"
+          fi
       
       - name: Upload release
         env:
@@ -92,6 +97,10 @@ jobs:
           TAG: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
           BODY: ${{ steps.get_output.outputs.BUILD_LOG }}
         run: |
+          if ! compgen -G "./build/*" >/dev/null; then
+            echo "No APKs were produced; skipping release creation."
+            exit 0
+          fi
           ls -lh ./build/*
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "Release" --notes "$BODY"
@@ -102,11 +111,13 @@ jobs:
 
       - name: Update build log branch
         id: update_config
+        if: ${{ steps.get_output.outputs.BUILT == '1' }}
         run: |
           git checkout -f update || git switch --discard-changes --orphan update
           cp -f build.tmp build.md
 
       - name: Commit build log
+        if: ${{ steps.get_output.outputs.BUILT == '1' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

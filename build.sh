@@ -8,7 +8,7 @@ source utils.sh
 trap "abort" INT
 
 if [ "${1-}" = "clean" ]; then
-	rm -r "$TEMP_DIR" "$BUILD_DIR" build.md
+	rm -rf "$TEMP_DIR" "$BUILD_DIR" build.md
 	exit 0
 fi
 
