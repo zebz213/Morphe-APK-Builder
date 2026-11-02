@@ -1,4 +1,5 @@
 Music-Morphe (arm64-v8a): 9.30.53  
+Music-Morphe (arm-v7a): 9.30.53  
 
 Install [MicroG](https://github.com/MorpheApp/MicroG-RE/) for non-root YouTube and YT Music APKs  
 
