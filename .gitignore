@@ -10,3 +10,4 @@ build.md
 *.keystore
 .env.keys
 !tests/
+!.github/workflows/tests.yml
