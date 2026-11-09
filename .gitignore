@@ -9,3 +9,4 @@ build.md
 # signing keys — never commit these
 *.keystore
 .env.keys
+!tests/

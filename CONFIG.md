@@ -38,6 +38,8 @@ version = "auto"     # 'auto', 'experimental', 'latest' or a version number (e.g
 
 # optional args to be passed to cli. can be used to set patch options
 # multiline strings in the config is supported
+# words are split on whitespace, so quote anything containing spaces:
+#   -e 'Some Patch'   -Otitle=\"value\"
 patcher-args = """\
   -OdarkThemeBackgroundColor=#FF0F0F0F \
   -Oanother-option=value \

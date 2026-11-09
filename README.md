@@ -41,6 +41,13 @@ $ ./build.sh
 
 Finished APKs are written to `build/`.
 
+### Tests
+```console
+$ bash tests/run.sh
+```
+Covers the change detection, version selection and argument parsing logic with
+no network, JDK or Lavalink. CI runs it on every push.
+
 ## Signing
 
 Builds are signed with a private key that is **not** in this repository. CI decodes it

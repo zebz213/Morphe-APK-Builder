@@ -330,20 +330,19 @@ get_patch_last_supported_ver() {
 
 patches_list_versions() {
 	local cli_jar=$1 patches_jar=$2 pkg_name=$3 is_experimental=$4
-	local cmd_base="java -jar '$cli_jar' list-versions"
+	local op
 
-	if [ "$is_experimental" = "true" ]; then
-		cmd_base+=" -x"
-	fi
-
-	local cmd="${cmd_base} --patches='$patches_jar' -f '$pkg_name'"
-	if op=$(eval "$cmd" 2>&1); then
+	local -a cmd=(java -jar "$cli_jar" list-versions --patches="$patches_jar" -f "$pkg_name")
+	[ "$is_experimental" = "true" ] && cmd+=("-x")
+	if op=$("${cmd[@]}" 2>&1); then
 		echo "$op"
 		return
 	fi
 
-	cmd="${cmd_base} '$patches_jar' -f '$pkg_name'"
-	if op=$(eval "$cmd" 2>&1); then
+	# older CLIs take the patches file positionally
+	cmd=(java -jar "$cli_jar" list-versions "$patches_jar" -f "$pkg_name")
+	[ "$is_experimental" = "true" ] && cmd+=("-x")
+	if op=$("${cmd[@]}" 2>&1); then
 		echo "$op"
 		return
 	fi
@@ -354,10 +353,12 @@ patches_list_versions() {
 patches_list() {
 	local cli_jar=$1 patches_jar=$2 pkg_name=$3 is_experimental=$4
 	local op
-	if ! op=$(java -jar "$cli_jar" list-patches -p "$patches_jar" --filter-package-name "$pkg_name" --versions --packages -b 2>&1); then
-		local cmd="java -jar '$cli_jar' list-patches --patches '$patches_jar' -f '$pkg_name' --with-versions --with-packages"
-		if [ "$is_experimental" = "true" ]; then cmd+=" -x"; fi
-		if ! op=$(eval "$cmd" 2>&1); then
+	local -a cmd=(java -jar "$cli_jar" list-patches -p "$patches_jar" --filter-package-name "$pkg_name" --versions --packages -b)
+	[ "$is_experimental" = "true" ] && cmd+=("-x")
+	if ! op=$("${cmd[@]}" 2>&1); then
+		cmd=(java -jar "$cli_jar" list-patches --patches "$patches_jar" -f "$pkg_name" --with-versions --with-packages)
+		[ "$is_experimental" = "true" ] && cmd+=("-x")
+		if ! op=$("${cmd[@]}" 2>&1); then
 			epr "Could not get patches list ($pkg_name) $cli_jar: '$op'"
 			return 1
 		fi
@@ -423,6 +424,8 @@ apkmirror_search() {
 
 	local appdpi=("nodpi" "anydpi")
 	if [ "$dpi" ]; then
+		# intentional splitting: $dpi is a space-separated list of dpi variants
+		# shellcheck disable=SC2206
 		appdpi+=($dpi)
 	fi
 
@@ -553,17 +556,25 @@ get_direct_resp() { __DIRECT_APKNAME__=$(awk -F/ '{print $NF}' <<<"$1"); }
 # --------------------------------------------------
 
 patch_apk() {
-	local stock_input=$1 patched_apk=$2 patcher_args=$3 cli_jar=$4 patches_jar=$5
+	local stock_input=$1 patched_apk=$2 cli_jar=$3 patches_jar=$4
+	shift 4
+	local -a extra_args=("$@")
 	local tmp_files
 	tmp_files="$(pwd)/$(mktemp -d -p "$TEMP_DIR")"
 
 	require_signing_keys
 
-	local cmd="java -jar '$cli_jar' patch '$stock_input' -o '$patched_apk' -p '$patches_jar' --keystore='$KS_FILE' \
---keystore-entry-password='$KS_KEY_PASS' --keystore-password='$KS_STORE_PASS' --signer='$KS_ALIAS' --keystore-entry-alias='$KS_ALIAS' -t '$tmp_files' $patcher_args"
+	local -a cmd=(java -jar "$cli_jar" patch "$stock_input" -o "$patched_apk" -p "$patches_jar"
+		--keystore="$KS_FILE" --keystore-entry-password="$KS_KEY_PASS"
+		--keystore-password="$KS_STORE_PASS" --signer="$KS_ALIAS"
+		--keystore-entry-alias="$KS_ALIAS" -t "$tmp_files")
+	cmd+=("${extra_args[@]}")
 
-	pr "$cmd"
-	if eval "$cmd"; then [ -f "$patched_apk" ]; else
+	# Log the command with the passwords masked: this output goes to the
+	# workflow log, and the keystore secrets must not land there.
+	pr "$(show_argv cmd)"
+
+	if "${cmd[@]}"; then [ -f "$patched_apk" ]; else
 		rm "$patched_apk" 2>/dev/null || :
 		return 1
 	fi
@@ -588,7 +599,13 @@ check_sig() {
 }
 
 build_rv() {
-	eval "declare -A args=${1#*=}"
+	# Take the array by name and copy it: build_rv clears a failing
+	# args[..._dlurl] entry below, and that must stay local to this call so the
+	# caller still has the full config for the next arch.
+	local -n _app_args=$1
+	local -A args=()
+	local _arg_key
+	for _arg_key in "${!_app_args[@]}"; do args[$_arg_key]=${_app_args[$_arg_key]}; done
 	local version="" pkg_name=""
 	local version_mode=${args[version]}
 	local app_name=${args[app_name]}
@@ -600,8 +617,8 @@ build_rv() {
 	local arch_f="${arch// /}"
 
 	local p_patcher_args=()
-	if [ "${args[excluded_patches]}" ]; then p_patcher_args+=("$(join_args "${args[excluded_patches]}" -d)"); fi
-	if [ "${args[included_patches]}" ]; then p_patcher_args+=("$(join_args "${args[included_patches]}" -e)"); fi
+	if [ "${args[excluded_patches]}" ]; then add_patch_args p_patcher_args -d "${args[excluded_patches]}"; fi
+	if [ "${args[included_patches]}" ]; then add_patch_args p_patcher_args -e "${args[included_patches]}"; fi
 	[ "${args[exclusive_patches]}" = true ] && p_patcher_args+=("--exclusive")
 
 	local tried_dl=()
@@ -701,19 +718,29 @@ build_rv() {
 		fi
 	fi
 	log "${table}: ${version}"
-	if [ "${args[patcher_args]}" ]; then p_patcher_args+=("${args[patcher_args]}"); fi
-
-	local branding_patch
-	branding_patch=$(grep "^Name: " <<<"$list_patches" | grep -i "custom branding" || :) branding_patch=${branding_patch#*: }
-	if [[ ${p_patcher_args[*]} =~ $branding_patch ]]; then
-		branding_patch=""
+	if [ "${args[patcher_args]}" ]; then
+		local _extra_arg
+		while IFS= read -r _extra_arg; do
+			if [ -n "$_extra_arg" ]; then p_patcher_args+=("$_extra_arg"); fi
+		done < <(split_args "${args[patcher_args]}")
 	fi
 
 	local microg_patch
 	microg_patch=$(grep "^Name: " <<<"$list_patches" | grep -i "gmscore\|microg" || :) microg_patch=${microg_patch#*: }
-	if [ -n "$microg_patch" ] && [[ ${p_patcher_args[*]} =~ $microg_patch ]]; then
+	if [ -n "$microg_patch" ] && isoneof "$microg_patch" "${p_patcher_args[@]}"; then
 		wpr "Cannot include/exclude microg patch as that's done by the builder automatically."
-		p_patcher_args=("${p_patcher_args[@]//-[ei] ${microg_patch}/}")
+		local -a _kept=()
+		local _i=0
+		while [ "$_i" -lt "${#p_patcher_args[@]}" ]; do
+			if { [ "${p_patcher_args[_i]}" = "-e" ] || [ "${p_patcher_args[_i]}" = "-i" ]; } &&
+				[ "${p_patcher_args[$((_i + 1))]-}" = "$microg_patch" ]; then
+				_i=$((_i + 2))
+				continue
+			fi
+			_kept+=("${p_patcher_args[_i]}")
+			_i=$((_i + 1))
+		done
+		p_patcher_args=("${_kept[@]}")
 	fi
 
 	local patcher_args patched_apk
@@ -724,7 +751,7 @@ build_rv() {
 	patched_apk="${TEMP_DIR}/${app_name_l}-${mph_brand_f}-${version_f}-${arch_f}.apk"
 
 	if [ -n "$microg_patch" ]; then
-		patcher_args+=("-e \"${microg_patch}\"")
+		patcher_args+=("-e" "$microg_patch")
 	fi
 
 	local stock_apk_to_patch="${stock_apk}.stripped.apk"
@@ -743,7 +770,7 @@ build_rv() {
 
 	local apk_output="${BUILD_DIR}/${app_name_l}-${mph_brand_f}-v${version_f}-${arch_f}.apk"
 	if [ "${NORB:-}" != true ] || { [ ! -f "$patched_apk" ] && [ ! -f "$apk_output" ]; }; then
-		if ! patch_apk "$stock_apk_to_patch" "$patched_apk" "${patcher_args[*]}" "${args[cli]}" "${args[ptjar]}"; then
+		if ! patch_apk "$stock_apk_to_patch" "$patched_apk" "${args[cli]}" "${args[ptjar]}" "${patcher_args[@]}"; then
 			epr "Building '${table}' failed!"
 			return 1
 		fi
@@ -758,4 +785,52 @@ build_rv() {
 }
 
 list_args() { tr -d '\t\r' <<<"$1" | tr -s ' ' | sed 's/" "/"\n"/g' | sed 's/\([^"]\)"\([^"]\)/\1'\''\2/g' | grep -v '^$' || :; }
-join_args() { list_args "$1" | sed "s/^/${2} /" | paste -sd " " - || :; }
+
+# Split a free-form flag string into argv words, honouring single and double
+# quotes, so `-e 'Some Patch' -Ofoo=bar` stays three words. Backslash escapes
+# the next character outside single quotes. This replaces shell-evaluating the
+# string.
+split_args() {
+	local s=$1 word='' quote='' c i
+	for ((i = 0; i < ${#s}; i++)); do
+		c=${s:i:1}
+		if [ "$c" = '\' ] && [ "$quote" != "'" ] && [ $((i + 1)) -lt ${#s} ]; then
+			i=$((i + 1))
+			word+=${s:i:1}
+			continue
+		fi
+		if [ -n "$quote" ]; then
+			if [ "$c" = "$quote" ]; then quote=''; else word+=$c; fi
+		elif [ "$c" = "'" ] || [ "$c" = '"' ]; then
+			quote=$c
+		elif [ "$c" = ' ' ] || [ "$c" = $'	' ]; then
+			if [ -n "$word" ]; then printf '%s\n' "$word"; word=''; fi
+		else
+			word+=$c
+		fi
+	done
+	if [ -n "$word" ]; then printf '%s\n' "$word"; fi
+	return 0
+}
+
+# Print an argv array on one line with the keystore passwords masked, so a
+# command can be logged without leaking secrets.
+show_argv() {
+	local -n _argv=$1
+	local shown
+	shown=$(printf '%q ' "${_argv[@]}")
+	if [ -n "${KS_STORE_PASS-}" ]; then shown=${shown//"$KS_STORE_PASS"/***}; fi
+	if [ -n "${KS_KEY_PASS-}" ]; then shown=${shown//"$KS_KEY_PASS"/***}; fi
+	printf '%s\n' "${shown% }"
+}
+
+# Append "flag name" pairs for a quoted patch list, one pair per name, so names
+# containing spaces stay a single argv element instead of being re-split.
+add_patch_args() {
+	local -n _out=$1
+	local flag=$2 name
+	while IFS= read -r name; do
+		if [ -n "$name" ]; then _out+=("$flag" "$name"); fi
+	done < <(split_args "$3")
+	return 0
+}

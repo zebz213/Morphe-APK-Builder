@@ -98,10 +98,10 @@ for table_name in $(toml_get_table_names); do
 		for a in arm64-v8a arm-v7a; do
 			app_args[table]="$table_name ($a)"
 			app_args[arch]="$a"
-			build_rv "$(declare -p app_args)" || FAILED+=("$table_name ($a)")
+			build_rv app_args || FAILED+=("$table_name ($a)")
 		done
 	else
-		build_rv "$(declare -p app_args)" || FAILED+=("$table_name")
+		build_rv app_args || FAILED+=("$table_name")
 	fi
 done
 if [ ${#FAILED[@]} -gt 0 ]; then

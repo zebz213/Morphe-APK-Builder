@@ -1,0 +1,10 @@
+[App1]
+app-name = "App One"
+patches-source = "MorpheApp/morphe-patches"
+archive-dlurl = "https://example.invalid/app1"
+
+[App2]
+app-name = "App Two"
+enabled = false
+patches-source = "MorpheApp/morphe-patches"
+archive-dlurl = "https://example.invalid/app2"
