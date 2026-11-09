@@ -176,7 +176,11 @@ get_prebuilts() {
 					rm "${file}" || return 1
 					cd "${file}-zip" || abort
 					zip -0rq "${CWD}/${file}" . || return 1
-				) >&2
+				) >&2 || {
+					rm -r "${file}-zip" || :
+					epr "Failed to strip integration checks from '$file' (needs unzip, zip and java on PATH)"
+					return 1
+				}
 				rm -r "${file}-zip" || :
 			fi
 		fi
@@ -803,7 +807,7 @@ split_args() {
 			if [ "$c" = "$quote" ]; then quote=''; else word+=$c; fi
 		elif [ "$c" = "'" ] || [ "$c" = '"' ]; then
 			quote=$c
-		elif [ "$c" = ' ' ] || [ "$c" = $'	' ]; then
+		elif [[ "$c" == [[:space:]] ]]; then
 			if [ -n "$word" ]; then printf '%s\n' "$word"; word=''; fi
 		else
 			word+=$c

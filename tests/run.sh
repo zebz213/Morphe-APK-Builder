@@ -101,6 +101,10 @@ case_name 'split_args handles plain flags'
 out=$(split_args '--exclusive -d Cover' | paste -sd '|')
 assert_eq '--exclusive|-d|Cover' "$out"
 
+case_name 'split_args treats newlines as separators (multiline TOML values)'
+out=$(split_args "$(printf -- '-Ofoo=1\n-Obar=2\n')" | paste -sd '|')
+assert_eq '-Ofoo=1|-Obar=2' "$out"
+
 case_name 'add_patch_args emits one flag/name pair per patch'
 declare -a collected=()
 add_patch_args collected -d "'A' 'B C'"
