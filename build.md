@@ -7,7 +7,7 @@ Install [MicroG](https://github.com/MorpheApp/MicroG-RE/) for non-root YouTube a
 
 [Morphe-APK-Builder](https://github.com/zebz213/Morphe-APK-Builder)
   
-Patches: MorpheApp/morphe-patches/patches-2.1.0.mpp  
-[Changelog](https://github.com/MorpheApp/morphe-patches/releases/tag/v2.1.0)
+Patches: MorpheApp/morphe-patches/patches-2.2.0.mpp  
+[Changelog](https://github.com/MorpheApp/morphe-patches/releases/tag/v2.2.0)
 
 CLI: MorpheApp/morphe-cli/morphe-desktop-2.1.1-all.jar    
