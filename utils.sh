@@ -595,11 +595,13 @@ patch_apk() {
 check_sig() {
 	local file=$1 pkg_name=$2
 	local sig
-	if grep -q "$pkg_name" sig.txt; then
-		sig=$(java -jar "$APKSIGNER" verify --print-certs "$file" | grep ^Signer | grep SHA-256 | tail -1 | awk '{print $NF}')
-		echo "$pkg_name signature: ${sig}"
-		grep -qFx "$sig $pkg_name" sig.txt
+	if ! grep -qF " $pkg_name" sig.txt; then
+		echo "no pinned signature for $pkg_name in sig.txt" >&2
+		return 1
 	fi
+	sig=$(java -jar "$APKSIGNER" verify --print-certs "$file" | grep ^Signer | grep SHA-256 | tail -1 | awk '{print $NF}')
+	echo "$pkg_name signature: ${sig}"
+	grep -qFx "$sig $pkg_name" sig.txt
 }
 
 build_rv() {
@@ -711,13 +713,13 @@ build_rv() {
 		unzip -j "${stock_apk}.apkm" -d "${stock_apk}-zip" >/dev/null
 		local a="${stock_apk}-zip/base.apk"
 		if ! sig_op=$(check_sig "$a" "$pkg_name" 2>&1); then
-			epr "Not building $table, apk signature mismatch '$a': $sig_op"
+			epr "Not building $table, apk signature check failed '$a': $sig_op"
 			return 1
 		fi
 		rm -rf "${stock_apk}-zip" || :
 	else
 		if ! sig_op=$(check_sig "$stock_apk" "$pkg_name" 2>&1); then
-			epr "Not building $table, apk signature mismatch '$stock_apk': $sig_op"
+			epr "Not building $table, apk signature check failed '$stock_apk': $sig_op"
 			return 1
 		fi
 	fi
@@ -821,10 +823,15 @@ split_args() {
 # command can be logged without leaking secrets.
 show_argv() {
 	local -n _argv=$1
+	local -a _shown=()
+	local _e
+	for _e in "${_argv[@]}"; do
+		if [ -n "${KS_STORE_PASS-}" ]; then _e=${_e//"$KS_STORE_PASS"/***}; fi
+		if [ -n "${KS_KEY_PASS-}" ]; then _e=${_e//"$KS_KEY_PASS"/***}; fi
+		_shown+=("$_e")
+	done
 	local shown
-	shown=$(printf '%q ' "${_argv[@]}")
-	if [ -n "${KS_STORE_PASS-}" ]; then shown=${shown//"$KS_STORE_PASS"/***}; fi
-	if [ -n "${KS_KEY_PASS-}" ]; then shown=${shown//"$KS_KEY_PASS"/***}; fi
+	shown=$(printf '%q ' "${_shown[@]}")
 	printf '%s\n' "${shown% }"
 }
 

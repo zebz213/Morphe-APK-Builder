@@ -121,4 +121,22 @@ assert_not_contains 's3cr3t-value' "$out"
 case_name 'show_argv keeps the rest of the command readable'
 assert_contains 'out.apk' "$out"
 
+case_name 'show_argv masks a password containing spaces'
+KS_STORE_PASS='two words' KS_KEY_PASS='two words'
+declare -a spaced_cmd=(java -jar cli.jar --keystore-password 'two words' -o out.apk)
+out=$(show_argv spaced_cmd)
+assert_not_contains 'two words' "$out"
+assert_not_contains 'two\ words' "$out"
+assert_contains '--keystore-password' "$out"
+
+echo "signature pinning"
+
+case_name 'check_sig refuses a package absent from sig.txt'
+if check_sig "$WORK/missing.apk" com.example.unlisted >"$WORK/sig.out" 2>&1; then
+	fail 'check_sig accepted a package with no pin'
+else
+	pass
+fi
+assert_contains 'no pinned signature for com.example.unlisted' "$(cat "$WORK/sig.out")"
+
 finish
